@@ -24,7 +24,7 @@ Tính cấp thiết của đề tài thể hiện:
 - (1) cần giải pháp phát hiện hiệu quả sự cố bất thường trên hệ thống mạng lớn;
 - (2) cần giải pháp bảo vệ hệ thống từ mối đe dọa ngày càng gia tăng của tấn công sử dụng trí tuệ nhân tạo.
 
-### Tính mới của đề tài
+## Tính mới của đề tài
 
 (i) Phát hiện sự cố bất thường: Việc phụ thuộc hệ thống giám sát, kiến thức chuyên môn của người quản trị hệ thống, qui trình và công cụ để chuẩn đoán, phát hiện và giải quyết sự cố là phương pháp tiếp cận thụ động (avoidance hoặc detection) và không còn phù hợp với các hệ thống mạng qui mô lớn, phức tạp và quan trọng. Phương pháp tiếp cận chủ động (prevention) dựa trên các kĩ thuật trí tuệ nhân tạo tiên tiến phân tích số lượng lớn dữ liệu nhật kí hệ thống để phát hiện sự cố bất thường trên hệ thống.
 
