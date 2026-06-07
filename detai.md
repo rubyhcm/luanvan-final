@@ -36,6 +36,15 @@ Tính cấp thiết của đề tài thể hiện:
 - **Nội dung 2:** Tìm hiểu các kỹ thuật phân tích dựa trên trí tuệ nhân tạo phù hợp kết hợp mô hình ngôn ngữ lớn cho dữ liệu nhật kí; đề xuất kỹ thuật phù hợp.
 - **Nội dung 3:** Xây dựng giải pháp phát hiện sự cố bất thường trên hệ thống mạng lớn sử dụng kỹ thuật phân tích đề xuất, áp dụng thử nghiệm trên hệ thống mạng qui mô vừa và nhỏ.
 
+## Tiêu chí đánh giá
+
+Giải pháp và các kỹ thuật đề xuất sẽ được đánh giá dựa trên các tiêu chí sau:
+
+1. **Độ chính xác (Accuracy):** Tỷ lệ phát hiện đúng các sự cố bất thường trên hệ thống.
+2. **Tỷ lệ dương tính giả (False Positive Rate):** Khả năng giảm thiểu các cảnh báo sai đối với các hành vi bình thường của hệ thống, giúp giảm tải cho người quản trị.
+3. **Tốc độ phản hồi (Response Time):** Thời gian từ khi sự kiện xuất hiện trong nhật ký đến khi mô hình phát hiện và đưa ra cảnh báo.
+4. **Khả năng áp dụng thực tiễn:** Giải pháp được triển khai và chạy thử nghiệm thành công trên môi trường hệ thống mạng quy mô vừa và nhỏ.
+
 ## Sản phẩm
 
 - Báo cáo kĩ thuật về phân tích dữ liệu nhật kí và sự cố bất thường hệ thống liên quan đến trí tuệ nhân tạo.
