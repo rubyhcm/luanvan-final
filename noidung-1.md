@@ -54,9 +54,19 @@
 
 - AI được dùng để tự động quét lỗ hổng mạng, thực hiện các cuộc tấn công DDoS thích ứng cao (adaptive DDoS), hoặc gửi các truy vấn thăm dò mạng tốc độ cực nhanh.
 
+## 4. Bẻ khoá mật khẩu bằng Deep Learning
+
+- Sử dụng các phương pháp học sâu (PassGAN) để nâng cao khả năng đoán và bẻ khóa mật khẩu một cách hiệu quả hơn nhiều so với các công cụ truyền thống
+
 # NOTE
 
 - Mình sẽ tập trung vào những sự cố bất thường nào?
+
+# Các dấu vết và biểu hiện của sự cốt bất thường trong log data
+
+- Chuỗi sự kiện log bị ngắt quãng không liên tục như người lập trình mong muốn
+
+- Phần trăm sử dụng CPU tăng, DISK I/O tăng => hết tài nguyên do nhiều threads hoạt động cùng lúc
 
 # Các công cụ mã nguồn mở thu thập log
 
@@ -73,3 +83,58 @@ Bộ ELK stack (Elasticsearch, Logstash, Kibana), Apache Kafka có thể làm tr
 ## 3. OpenSearch
 
 - Thu thập log từ nhiều nguồn: máy chủ, ứng dụng, cơ sở dữ liệu, ...
+
+## 4.Prometheus
+
+- Thu thập metrics từ nhiều nguồn
+
+# Xử lý, sàn lọc và trích xuất đặc trưng
+
+## 1. Xử lý
+
+- Các công cụ truyền thống như Drain, Spell dễ gặp lỗi khi cấu trúc log phức tạp hoặc thay đổi
+- LLM có thể xử dụng để trích xuất các mẫu nhật kí
+- Áp dụng rule để chuẩn hoá các biến số như path, ip, ... về chung một định dạng chuản => giảm độ nhiễu
+- Gom nhóm nhật kí
+
+NOTE: Tìm hiểu thêm về **Few-shot learning**
+
+## 2. Sàng lọc
+
+Log rất nhiều bao gồm cả bình thường và bất thường nếu đưa hết vào LLM sẽ quá context nên phải sàng lọc.
+
+- Gom cụm theo nội dung => chọn một đại diện cho từng cụm nọi dung => giảm context, giảm dư thừa
+- Gán trọng số cho log: log xuất hiện phổ biến sẽ đánh trọng số thấp, log hiếm sẽ đánh trọng số cao (log hiếm thường là bất thường)
+
+NOTE:
+
+- Tìm hiểu thêm cách gom cụm nội dung (Jaccard, DBSCAN)
+- Tìm hiểu thêm về các đánh trọng số log (TF-IDF)
+
+## 3. Trích xuất đặc trưng
+
+- Đếm số lần xuất hiện của các log đại diện nhân với trọng số => ma trận đặc trưng
+- BERT, RoBERTa, DistilRoBERTa => chuyển đổi log thành ngữ nghĩa
+
+# Kiến trúc, mã nguồn mở hiện tại
+
+## 1. CoLA (Collaborative Log Anomaly Detection)
+
+Cơ chế hoạt động: SDM đóng vai trò làm bộ lọc (xử lí nhanh và chọn ra log bất thường); LLM sẽ nhận log bất thường từ SDM rồi phân tích, chuẩn đoán và đưa rra giải thích chi tiết
+
+## 2. FlexLog - phù hợp cho unstable log
+
+Cơ chế hoạt động: kết hợp học máy truyền thống với LLM
+
+## 3. Parsing-Free bằng LogFiT và NeuraLog
+
+Các kiến trúc truyền thống thường cần công cụ phân tích cú pháp (như Drain) để chuyển log thô thành dạng có cấu trúc => dễ mất ngữ nghĩa. Kiến trúc này sẽ bỏ qua bước này
+
+- LogFiT sử dụng RoBERTa hoặc Longformer, đọc trực tiếp log thô sau đó sử dụng khả năng dự đoán câu bị che để phát hiện xem log có lệch khỏi quy luật thông thường hay không
+- NeuralLog: trích xuất ngữ nghĩa từ log
+
+## 4. LogBERT
+
+Cơ chế hoạt động: LogBERT học các ngữ cảnh bình thường của log qua: mô hình ngôn ngữ bị che và dự đoán câu tiếp theo. Bất thường xảy ra khi log mới không nằm trong các mẫu bình thường mà mô hình đã học
+
+NOTE: xem xét không sử dụng LogBERT do log hiện đại thay đổi liên tục

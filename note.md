@@ -1,0 +1,11 @@
+- **Công cụ phân tích cú pháp nhật ký (Log Parsers):** Để AI có thể hiểu được dữ liệu nhật ký thô, các công cụ phân tích tự động như **Drain, Spell, AEL, LogCluster, IPLoM** hoặc **MoLFI** thường được sử dụng để chuyển đổi nhật ký thành các mẫu (template) có cấu trúc.
+- **Các mô hình AI mã nguồn mở dùng để phát hiện bất thường:** Thay vì phụ thuộc vào các API thương mại (như GPT-4), các nhà nghiên cứu sử dụng nhiều LLM mã nguồn mở để phân tích dữ liệu nhật ký nhằm tối ưu hóa chi phí và đảm bảo quyền riêng tư. Các mô hình nổi bật bao gồm **LLaMA** (ví dụ: Llama 3.1 8B), **Mistral** (ví dụ: Mistral 22B, Mistral 7B), **Qwen**, và các mô hình thuộc họ **BERT/RoBERTa**.
+
+**4. Nhận diện mô hình tấn công bằng AI (Anomaly Detection)**
+Để phát hiện các hình mẫu tấn công tinh vi mang tính ẩn giấu cao, hệ thống cần phân tích hành vi theo ngữ cảnh:
+
+- **Sử dụng kiến trúc Transformer (LogBERT):** Mô hình LogBERT áp dụng cơ chế tự chú ý (self-attention) để học các mẫu hành vi hợp lệ của chuỗi log thông qua tác vụ "Masked Language Model". Khi một chuỗi log mới (chứa mã độc hoặc tấn công) đi lệch khỏi mô hình hành vi bình thường đã học, hệ thống sẽ gán điểm bất thường và đánh dấu đó là mối đe dọa,,,.
+- **Chiến lược hợp tác giữa Mô hình lớn và nhỏ (AdaptiveLog):** Phân tích toàn bộ log bằng LLM rất tốn kém. Bạn có thể sử dụng một Mô hình Ngôn ngữ Nhỏ (SLM) làm màng lọc đầu tiên để xử lý các dấu hiệu tấn công cơ bản. SLM sử dụng Suy luận Bayes để tính toán "độ không chắc chắn". Nếu chuỗi log quá phức tạp và SLM không chắc chắn, hệ thống mới chuyển dữ liệu đó cho LLM,,.
+- **Tăng cường lập luận bằng RAG và Trường hợp lỗi (ECR):** Đối với các cuộc tấn công mới hoặc hành vi bất thường khó nhận biết, LLM có thể tham chiếu đến một cơ sở dữ liệu chứa các "trường hợp tấn công/lỗi trong quá khứ" thông qua kỹ thuật RAG (Retrieval-Augmented Generation),. Bằng cách này, LLM học được từ các sai lầm trước đó, từ đó đưa ra kết luận phân tích nguyên nhân và nhận diện cuộc tấn công một cách chính xác, minh bạch,.
+
+Bằng việc kết hợp khả năng phân tích chuỗi thời gian của BERT cùng với tư duy lập luận của các Mô hình Ngôn ngữ Lớn, bạn có thể tự động hóa việc sàng lọc hàng triệu dòng log và nhận diện các chiến thuật tấn công mạng tinh vi trước khi chúng gây ra thiệt hại lớn.
