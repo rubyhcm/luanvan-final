@@ -62,7 +62,7 @@
 
 - Mình sẽ tập trung vào những sự cố bất thường nào?
 
-# Các dấu vết và biểu hiện của sự cốt bất thường trong log data
+# Các dấu vết và biểu hiện của sự cố bất thường trong log data
 
 - Chuỗi sự kiện log bị ngắt quãng không liên tục như người lập trình mong muốn
 
@@ -88,23 +88,31 @@ Bộ ELK stack (Elasticsearch, Logstash, Kibana), Apache Kafka có thể làm tr
 
 - Thu thập metrics từ nhiều nguồn
 
+## 5.Grafana Loki
+
+- Loki không lập chỉ mục (index) cho toàn bộ nội dung của từng dòng log như các hệ thống cũ.
+- Loki chỉ lập chỉ mục cho các siêu dữ liệu (nhãn/label) đi kèm.
+  => Tiết kiệm tài nguyên, tăng tốc độ truy vấn log với dữ liệu lớn
+
 # Xử lý, sàn lọc và trích xuất đặc trưng
 
 ## 1. Xử lý
 
-- Các công cụ truyền thống như Drain, Spell dễ gặp lỗi khi cấu trúc log phức tạp hoặc thay đổi
+- Các công cụ truyền thống như Drain, Spell dễ gặp lỗi khi cấu trúc log phức tạp hoặc thay đổi liên tục
 - LLM có thể xử dụng để trích xuất các mẫu nhật kí
 - Áp dụng rule để chuẩn hoá các biến số như path, ip, ... về chung một định dạng chuản => giảm độ nhiễu
 - Gom nhóm nhật kí
+- Sử dụng Provenance Graph
 
-NOTE: Tìm hiểu thêm về **Few-shot learning**
+NOTE: Tìm hiểu thêm về **Few-shot learning**, **ProcSAGE**
 
 ## 2. Sàng lọc
 
-Log rất nhiều bao gồm cả bình thường và bất thường nếu đưa hết vào LLM sẽ quá context nên phải sàng lọc.
+Log rất nhiều bao gồm cả bình thường và bất thường + bị nhiễu nhiều => nếu đưa hết vào LLM sẽ tốn context + không hiệu quả => phải sàng lọc.
 
-- Gom cụm theo nội dung => chọn một đại diện cho từng cụm nọi dung => giảm context, giảm dư thừa
+- Gom cụm theo nội dung => chọn một đại diện cho từng cụm nội dung => giảm context, giảm dư thừa
 - Gán trọng số cho log: log xuất hiện phổ biến sẽ đánh trọng số thấp, log hiếm sẽ đánh trọng số cao (log hiếm thường là bất thường)
+- Sử dụng kết hợp giữa SLM và LLM: SLM sẽ sàng lọc những log cần phân tích, LLM sẽ phân tích sâu hơn các log đã được chọn lọc => giảm context, giảm dư thừa; log nào phức tạp thì đưa qua LLM xử lí
 
 NOTE:
 
@@ -118,17 +126,19 @@ NOTE:
 
 # Kiến trúc, mã nguồn mở hiện tại
 
+Xu hướng mới sử dụng trực tiếp LLM cho các tác vụ Zero-shot/Few-shot để trích xuất ngữ nghĩa và biến số trực tiếp từ log thô mà không cần phân tích cú pháp, giúp tránh làm mất ngữ nghĩa của hệ thống
+
 ## 1. CoLA (Collaborative Log Anomaly Detection)
 
-Cơ chế hoạt động: SDM đóng vai trò làm bộ lọc (xử lí nhanh và chọn ra log bất thường); LLM sẽ nhận log bất thường từ SDM rồi phân tích, chuẩn đoán và đưa rra giải thích chi tiết
+Cơ chế hoạt động: SDM(LogMoE) làm bộ lọc (xử lí nhanh và chọn ra log bất thường); LLM sẽ nhận log bất thường từ SDM rồi phân tích, chuẩn đoán và đưa ra giải thích chi tiết
 
 ## 2. FlexLog - phù hợp cho unstable log
 
-Cơ chế hoạt động: kết hợp học máy truyền thống với LLM
+Cơ chế hoạt động: kết hợp học máy truyền thống với LLM; sử dụng cache + RAG để tối ưu hoá thời gian suy luận
 
 ## 3. Parsing-Free bằng LogFiT và NeuraLog
 
-Các kiến trúc truyền thống thường cần công cụ phân tích cú pháp (như Drain) để chuyển log thô thành dạng có cấu trúc => dễ mất ngữ nghĩa. Kiến trúc này sẽ bỏ qua bước này
+Các kiến trúc truyền thống thường cần công cụ phân tích cú pháp (như Drain) để chuyển log thô thành dạng có cấu trúc => dễ mất ngữ nghĩa. Kiến trúc này sẽ bỏ qua bước này (sử dụng trực tiếp log thô)
 
 - LogFiT sử dụng RoBERTa hoặc Longformer, đọc trực tiếp log thô sau đó sử dụng khả năng dự đoán câu bị che để phát hiện xem log có lệch khỏi quy luật thông thường hay không
 - NeuralLog: trích xuất ngữ nghĩa từ log
@@ -136,5 +146,18 @@ Các kiến trúc truyền thống thường cần công cụ phân tích cú ph
 ## 4. LogBERT
 
 Cơ chế hoạt động: LogBERT học các ngữ cảnh bình thường của log qua: mô hình ngôn ngữ bị che và dự đoán câu tiếp theo. Bất thường xảy ra khi log mới không nằm trong các mẫu bình thường mà mô hình đã học
+
+## 5. LogRESP-Agent
+
+Kết hợp 7 công cụ để phân tích và cảnh báo sự cố
+
+## 6. AgentFM
+
+- Bao gồm nhiều agents, mỗi agent có nhiệm vụ riêng biệt
+- Agent trung tâm thu thập dữ liệu từ các agents khác của hệ thống sao đó đưa ra các hướng dẫn để Agent task thực hiện chuẩn đoán và phát hiện sự cố
+
+## 7. CoLog
+
+Xem log bình thường là cảm xúc tích cực và log lỗi là cảm xúc tiêu cực => phát hiện bất thường đơn lẻ và bất thường theo cụm.
 
 NOTE: xem xét không sử dụng LogBERT do log hiện đại thay đổi liên tục
