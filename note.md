@@ -9,3 +9,12 @@
 - **Tăng cường lập luận bằng RAG và Trường hợp lỗi (ECR):** Đối với các cuộc tấn công mới hoặc hành vi bất thường khó nhận biết, LLM có thể tham chiếu đến một cơ sở dữ liệu chứa các "trường hợp tấn công/lỗi trong quá khứ" thông qua kỹ thuật RAG (Retrieval-Augmented Generation),. Bằng cách này, LLM học được từ các sai lầm trước đó, từ đó đưa ra kết luận phân tích nguyên nhân và nhận diện cuộc tấn công một cách chính xác, minh bạch,.
 
 Bằng việc kết hợp khả năng phân tích chuỗi thời gian của BERT cùng với tư duy lập luận của các Mô hình Ngôn ngữ Lớn, bạn có thể tự động hóa việc sàng lọc hàng triệu dòng log và nhận diện các chiến thuật tấn công mạng tinh vi trước khi chúng gây ra thiệt hại lớn.
+
+Mistral, LLaMA hoặc Qwen
+
+Tóm lại: Nếu bạn muốn xây dựng một luồng kiến trúc (pipeline) mã nguồn mở tốt nhất hiện nay, bạn nên dùng Grafana Loki để thu thập log
+, bỏ qua bước parser truyền thống mà dùng công nghệ embedding (như LogFiT
+), sau đó áp dụng Kiến trúc Tác tử đệ quy (như LogRESP-Agent hoặc AgentFM)
+để hệ thống không chỉ báo động (Alert) mà còn tự động điều tra ngữ cảnh và giải thích nguyên nhân gốc rễ cho bạn.
+
+SXAD (Shapely eXplainable Anomaly Detection): Biến các mô hình hộp đen (như Random Forest, Gradient Boosting) thành hộp trắng. Bằng cách sử dụng thuật toán SHAP, khung này có thể chỉ ra chính xác tính năng (hoặc sự kiện log) nào đã dẫn đến quyết định báo động sự cố, đáp ứng tiêu chuẩn minh bạch của Công nghiệp 5.0
