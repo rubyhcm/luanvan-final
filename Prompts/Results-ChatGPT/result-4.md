@@ -1,321 +1,510 @@
-# 1. Đánh giá các Cơ hội Nghiên cứu
+# 1. Tổng quan các Đề cơ hội nghiên cứu  
 
-Dựa trên phân tích trong `result-3.md`, chúng tôi xác định các **cơ hội cải tiến** chủ yếu sau (tập trung theo hướng nâng cao sớm phát hiện dị thường log):
+Dựa trên _Research Opportunity Prioritization_ (result-3), các hướng cải tiến chính tập trung vào việc khắc phục hạn chế của các phương pháp log-anomaly hiện có (đặc biệt liên quan đến bối cảnh, tri thức và khả năng phát hiện sớm). Các cơ hội có thể gồm: 
 
-| Cơ hội nghiên cứu                   | Baseline (2025–26)                        | Giới hạn chính                                                | Bằng chứng (Evidence)                                  | Hướng cải tiến                       | Lợi ích kỳ vọng                                             | Tính khả thi (đánh giá)      | Rủi ro chính                                            |
-|------------------------------------|-----------------------------------------|-------------------------------------------------------------|-------------------------------------------------------|-------------------------------------|-----------------------------------------------------------|-----------------------------|--------------------------------------------------------|
-| **NÂNG CẤP KÉT HỢP LẤY NGỮ CẢNH (RAG)** <br/>(*Retrieval-Augmented Generation*) | Phương pháp LLM/mô hình ngôn ngữ hiện đại (ví dụ prompt-based LLM như LogPrompt/EagerLog)| Thiếu bối cảnh lịch sử; mô hình chỉ xử lý chuỗi log ngắn gọn tại một thời điểm, không tận dụng được log quá khứ quan trọng.                                    | Nghiên cứu đã chỉ ra RAG giúp đưa thông tin lịch sử bổ sung vào đánh giá dị thường. | Thêm thành phần truy vấn/văn bản vào bộ nhớ log (vector DB) cho LLM, phục vụ tăng cường ngữ cảnh lịch sử. | Trung bình: cần xây hệ thống truy xuất cơ sở dữ liệu ngữ cảnh, triển khai LLM thế hệ lớn. | Phụ thuộc dữ liệu log lịch sử chất lượng; tăng độ trễ xử lý vì truy vấn RAG.   |
-| **BỘ NHỚ NGẮN/DÀI HẠN (Memory-Augmented)** | Mô hình LLM/RAG hiện tại (như RAGLog)   | Mất thông tin dài hạn: Log phát sinh qua nhiều thời điểm/phát hiện đa giai đoạn không được ghi nhớ; mô hình “quên” các mô-típ cũ.                | Mô hình DM-RAG đề xuất bộ nhớ ngắn hạn và dài hạn giúp nhận diện đa giai đoạn (Độ nhạy tăng lên). | Tích hợp cơ chế bộ nhớ ngoài (faiss, replay buffer) cho LLM/RAG, giúp lưu giữ mẫu log bất thường. | Khá: cơ sở tri thức dạng vector đã có (FAISS), mô hình LLM nhẹ (Phi-4-mini). Thời gian xây dựng vừa phải. | Phức tạp trong duy trì bộ nhớ; cần nghiệm thu phê duyệt mẫu lưu; khả năng trôi dạt bộ nhớ.     |
-| **CHAIN-OF-THOUGHT + RL (Giải trình và Tối ưu bằng RL)** | LLM prompt/fine-tune truyền thống (như LogGPT) | Mô hình thiếu khả năng lập luận có cấu trúc; thường tung ra kết quả không giải thích được (“hallucination”); thiếu tin cậy.  | Các báo cáo gần đây (RationAnomaly) cho thấy huấn luyện theo CoT và RL giảm hiện tượng ảo tưởng, cải thiện độ chính xác và minh giải quyết định. | Fine-tune LLM theo chuỗi suy luận (CoT), kết hợp huấn luyện tăng cường với hàm thưởng đa mặt nhằm tối ưu tính chính xác và logic. | Khó: cần bộ dữ liệu có lời giải thích (CoT) và vòng RL. Tuy nhiên, nền tảng mã/mô hình công khai có sẵn (GPT-4o, LoRA) hỗ trợ. | Chi phí huấn luyện cao; thiết kế hàm thưởng phức tạp; LLM có thể mất định tính ban đầu.           |
-| **ĐỒ THỊ TRI THỨC (GraphRAG, Knowledge Graph)** | Phân tích log thuần túy (không có KG)    | Không khai thác kiến thức cấu trúc hệ thống; mất mối quan hệ giữa thực thể/thiết bị.                                      | *Chưa có chứng cứ cụ thể trong các tài liệu đầu vào về hiệu quả trên log.*         | Xây KG/quora kế hoạch hệ thống, dùng GraphRAG để truy xuất thông tin liên quan.             | Thấp: cần tạo/sản xuất KG phức tạp; ít bằng chứng ứng dụng cho log anomaly.    | Độ phức tạp cao, khó thu thập KG; rủi ro về sai lệch dữ liệu kiến thức.      |
-| **AI Cơ giới hoá (Agentic AI)** | Mô hình đơn thuần                | Thiếu khả năng tự động hoá các bước phức tạp, chỉ đưa ra dự báo một lần.                                   | *Không tìm thấy bằng chứng rõ ràng trong input.*                                             | Sử dụng multi-agent/TO-BEM để chia nhỏ quy trình chẩn đoán.                             | Thấp: không có chuẩn mực, đòi hỏi kiến trúc mới và hiệu chỉnh phức tạp.    | Quá tải kiến trúc, lỗi giữa các tác vụ, tiêu tốn thời gian.          |
+- **Opportunity 1:** Tích hợp thông tin lịch sử/ngữ cảnh (memory-augmented) vào các mô hình hiện có.  
+  - *Baseline:* Các phương pháp dựa trên mạng nơ-ron tuần tự như MLog (TSC 2023) không lưu giữ ngữ cảnh lịch sử.  
+  - *Limitation:* Khả năng dự đoán sớm giảm do thiếu thông tin ngữ cảnh trước đó.  
+  - *Improvement:* Bổ sung module ghi nhớ ngoại vi (external memory) hoặc cơ chế RAG để lưu trữ và tham chiếu các sự kiện log lịch sử.  
+  - *Expected Benefit:* Nâng cao độ chính xác phát hiện sớm, giảm thời gian phát hiện sau sự kiện bất thường.  
 
-- *Lưu ý:* Đã bỏ **GraphRAG** và **Agentic AI** vì bằng chứng yếu và phạm vi quá rộng, không phù hợp hạn mức luận văn. Các cơ hội chính còn lại đều có “baseline” cụ thể và thể hiện rõ hạn chế cần cải tiến.
+- **Opportunity 2:** Kết hợp tri thức chuyên ngành (knowledge augmentation) hoặc đồ thị tri thức vào phân tích log.  
+  - *Baseline:* Các mô hình như LogEDL (Applied Sciences 2024) sử dụng deep learning thuần túy, chưa tận dụng thông tin cấu trúc hay domain knowledge.  
+  - *Limitation:* Khó mở rộng phát hiện đến các loại lỗi mới (new patterns) do thiếu kiến thức bổ sung.  
+  - *Improvement:* Xây dựng và tích hợp đồ thị tri thức hoặc RAG để truy xuất thông tin ngữ nghĩa liên quan (ví dụ, đặc tả hệ thống, phụ thuộc nghiệp vụ).  
+  - *Expected Benefit:* Giảm false negatives đối với logs mới/chưa biết, cải thiện khả năng tổng quát và giải thích kết quả.  
 
-# 2. Ba Đề xuất Nghiên cứu Ưu tiên
+- **Opportunity 3:** Sử dụng mô hình ngôn ngữ lớn (LLM) và RAG/GraphRAG cho phát hiện bất thường log.  
+  - *Baseline:* LogSentry (Scientific Reports 2025) áp dụng BERT và KNN retrieval nhưng chưa dùng LLM.  
+  - *Limitation:* Phương pháp hiện tại thiếu khả năng suy diễn ngữ nghĩa hoặc hiểu đoạn log dài, dẫn đến giảm khả năng phát hiện sớm phức tạp.  
+  - *Improvement:* Thay KNN retrieval bằng RAG sử dụng LLM hoặc GraphRAG để truy xuất và phân tích thông tin ngữ cảnh mở rộng.  
+  - *Expected Benefit:* Phát hiện bất thường nhanh hơn, tăng khả năng lý giải (explainability) và thích ứng với ngữ cảnh dài.  
 
-Sau khi đánh giá các cơ hội với tiêu chí (*bằng chứng*, *tính khả thi*, *mức độ chuyên sâu*), chúng tôi chọn ba đề xuất dưới đây:
+- **Opportunity 4:** Cân bằng dữ liệu và phát hiện sớm.  
+  - *Baseline:* Hầu hết các phương pháp (DeepLog, CLDTLog, etc.) không tập trung đánh giá khả năng phát hiện sớm.  
+  - *Limitation:* Thiếu chỉ tiêu đánh giá sớm (early warning), dễ bỏ sót cảnh báo sớm.  
+  - *Improvement:* Định nghĩa lại hàm mất mát hoặc tiêu chí training ưu tiên phát hiện càng sớm càng tốt.  
+  - *Expected Benefit:* Nâng cao tỉ lệ phát hiện trước khi sự cố xảy ra.  
 
-- **C1: Mô hình LLM kết hợp RAG cho Phát hiện Dị thường sớm.**  
-  *Baseline:* Phương pháp LLM hiện tại (ví dụ prompt-based LLM như EagerLog/LogPrompt) mà không dùng lịch sử log. *Giới hạn:* Ngữ cảnh ngắn, không xem lại log lịch sử → Mất dị thường lâu dài. *Cải tiến:* Thêm bộ nhớ truy vấn (vector DB) chứa log chuẩn/tiền sử và tích hợp Retrieval to Context cho LLM. *Lợi ích:* Mở rộng bối cảnh, tăng khả năng phát hiện các mẫu dị thường lặp lại theo thời gian. *Khả thi:* Chi phí lưu trữ và tính toán chấp nhận được (vector DB có sẵn); sử dụng mô hình có sẵn để thực hiện RAG. *Đánh giá:* So sánh độ nhạy/F1 với baseline và LLM gốc, đo ** thời gian phát hiện** ban đầu (Time-to-Detection). *Giá trị:* Có ý nghĩa thực tiễn cao khi hệ thống giám sát có thể cảnh báo kịp thời. *Xuất bản:* Kết quả tốt có thể gửi Conf. ML/NLP (ICML, ACL Workshops).
+_Tất cả cơ hội trên lấy từ phân tích của “result-3.md” và “result-2.md”, không tạo thêm gap mới._
 
-- **C2: Mô hình LLM + RAG với Bộ nhớ Ngoại lai (Memory) cho Log Dị thường.**  
-  *Baseline:* Phương pháp tương tự RAGLog (2023) hay RAG-enhanced LLM, không có cơ chế nhớ liên tục. *Giới hạn:* Khi log được xử lý theo session ngắn, các mẫu bất thường ở session trước không được ghi nhớ. *Cải tiến:* Thêm thành phần bộ nhớ song song (short-term và long-term memory như DM-RAG) để lưu giữ các biểu hiện log bất thường lâu dài. *Lợi ích:* Tăng khả năng phát hiện dị thường đa giai đoạn (tăng Recall cao) mà vẫn giữ độ phủ sóng rộng. *Khả thi:* Cần training thêm cho LLM dùng memory; sử dụng FAISS-indexed DB; có mã mẫu tham khảo (Phi-4-mini đã dùng). *Đánh giá:* So sánh hiệu năng recall/F1 giữa RAGLog cũ và phiên bản mới, đánh giá tình huống đa giai đoạn (trigger lead-time). *Giá trị:* Kết quả có tính khoa học khi chứng minh giá trị của bộ nhớ kéo dài trong giám sát; nếu thành công, tiềm năng gửi bài cho TPDS hoặc ICLR Workshop.  
+| Cơ hội                           | Baseline                           | Nguồn Q1/Q2                 | Hạn chế chính                                   | Bằng chứng                      | Cải tiến đề xuất               | Lợi ích dự kiến                         | Tính khả thi thí nghiệm | Rủi ro            |
+|----------------------------------|------------------------------------|-----------------------------|-----------------------------------------------|---------------------------------|-------------------------------|------------------------------------------|-------------------------|-------------------|
+| 1. Tích hợp **bộ nhớ/ngữ cảnh**   | MLog (IEEE TSC 2023, Q1)  | Xác minh qua JCR/SJR Q1     | Chỉ dựa trên window, không lưu thông tin lịch sử | Hạn chế về phát hiện sớm (result-2) | Thêm module bộ nhớ neural hoặc RAG | Giảm thời gian phản ứng, cải thiện hiệu suất phát hiện sớm | Trung bình (mô-đun phức tạp vừa phải) | Phát sinh độ phức tạp huấn luyện cao |
+| 2. Tri thức/KG cho phân tích log  | LogEDL (Appl. Sci. 2024, Q2)      | Xác minh qua SCImago Q2     | Không có external knowledge, dễ hạn chế generalization | Thiếu kiến thức chuyên ngành (result-2) | Xây KG từ log/hệ thống + RAG    | Phát hiện tốt hơn với lỗi chưa thấy, tăng khả năng giải thích | Trung bình-cao (xây KG phức tạp) | Khó thu thập/biên tập tri thức chính xác |
+| 3. RAG/LLM cho phát hiện log sớm  | LogSentry (Sci. Reports 2025, Q2) | Xác minh qua JCR/SJR Q2     | Phụ thuộc BERT+KNN, thiếu khả năng suy luận ngữ nghĩa mạnh | KNN retrieval có hạn (result-2)    | Thay KNN bằng LLM/RAG            | Cải thiện phát hiện sớm, tăng explainability        | Khó (cần kiến trúc RAG, GPT API) | Phụ thuộc tài nguyên LLM, latency cao |
 
-- **C3: LLM với Chain-of-Thought & RL cho Độ tin cậy và Giải thích.**  
-  *Baseline:* Phương pháp LLM đơn giản (prompt-based hoặc fine-tuned như LogGPT) phát hiện dị thường bằng cách suy diễn trực tiếp. *Giới hạn:* Dễ sinh *hallucination*, thiếu diễn giải logic; ảnh hưởng độ tin cậy và giải thích kết quả. *Cải tiến:* Huấn luyện LLM theo chuỗi suy luận (CoT) với dữ liệu có lời giải thích, kết hợp tinh chỉnh qua Reinforcement Learning để tối ưu accuracy và giảm hallucination. *Lợi ích:* Cải thiện độ chính xác, tăng tính giải thích và độ tin cậy của phát hiện. *Khả thi:* Có thể tận dụng mô hình sẵn (ChatGPT/GPT-4 để tạo tập CoT), dùng LoRA để fine-tune, áp dụng thuật toán RL. *Đánh giá:* So sánh F1, giảm hallucination (ví dụ metric chất lượng giải thích); xác định trade-off về thời gian inference do CoT dài hơn. *Giá trị:* Tăng cường tính minh bạch của hệ thống AIOps; phù hợp với yêu cầu bài toán công nghiệp cần giải thích, có thể đăng tại các hội nghị chuyên ngành AI (NeurIPS Workshop, ICDM).
+*Loại bỏ bất kỳ cơ hội nào không có baseline rõ ràng Q1/Q2 hay hạn chế không đủ bằng chứng.*  
 
-# 3. Định vị Nghiên cứu (Research Positioning) của mỗi phương án
+# 2. Ba Đề xuất ứng cử hàng đầu  
 
-### *Đề xuất C1: “LLM + RAG”*  
-- **Baseline:** Phương pháp LLM hiện đại cho log anomaly (LogPrompt/EagerLog).  
-- **Giới hạn:** Mô hình bị giới hạn context window; không khai thác lịch sử log dài. Điều này làm bỏ sót các mẫu bất thường lặp lại theo thời gian.  
-- **Cải tiến hướng tới:** Kết hợp Retrieval Augmentation – dùng DB log tiền sử (vector embedding) để cung cấp thêm ngữ cảnh liên quan khi LLM xử lý log mới.  
-- **Mức đóng góp:** *Targeted Improvement* – chỉ bổ sung module RAG vào pipeline hiện tại. Mô hình gốc và cấu trúc chính được giữ nguyên, chỉ mở rộng bối cảnh dữ liệu.  
+Sau đánh giá các cơ hội trên, ba proposal candidates được chọn là: 
 
-### *Đề xuất C2: “RAG + Bộ nhớ”*  
-- **Baseline:** Phương pháp RAGLog (Phan et al., 2023) hoặc tương đương – LLM kết hợp RAG nhưng chưa có bộ nhớ ngoài.  
-- **Giới hạn:** Thiếu cơ chế ghi nhớ lâu dài; các anomalis trong quá khứ bị quên đi (issue trong phát hiện đa giai đoạn).  
-- **Cải tiến hướng tới:** Thêm hai luồng bộ nhớ song song – bộ nhớ ngắn hạn (ghi nhận pattern mới) và dài hạn (ghi pattern quan trọng) như DM-RAG. Đây là *extension* để lưu lại thông tin hữu ích qua phiên.  
-- **Mức đóng góp:** *Targeted Improvement* – mở rộng baseline RAGLog với thành phần memory; giữ phần LLM/RAG cốt lõi và bổ sung mới.  
+- **Đề xuất 1:** *Basline = MLog (2023, IEEE TSC, Q1) → Hạn chế: Thiếu bộ nhớ/ngữ cảnh → Cải tiến: Bổ sung Memory-augmented RNN.*  
+- **Đề xuất 2:** *Baseline = LogEDL (2024, Appl. Sci., Q2) → Hạn chế: Thiếu tri thức chuyên ngành → Cải tiến: Tích hợp Knowledge Graph/RAG.*  
+- **Đề xuất 3:** *Baseline = LogSentry (2025, Sci. Rep., Q2) → Hạn chế: Retrieval đơn giản, không có suy luận ngữ nghĩa → Cải tiến: Áp dụng RAG dùng LLM.*  
 
-### *Đề xuất C3: “LLM + Chain-of-Thought + RL”*  
-- **Baseline:** Mô hình LLM gốc (ví dụ LogGPT hoặc GPT-4 prompt-based) cho log anomaly detection.  
-- **Giới hạn:** Dễ sinh *hallucination*, thiếu reasoning rõ ràng; đồng thời thiếu khả năng giải thích và tin cậy.  
-- **Cải tiến hướng tới:** Áp dụng *Chain-of-Thought supervised fine-tuning* để truyền đạt lô-gíc chuyên gia, kết hợp *Reinforcement Learning Alignment* để tối ưu hóa cho tính chính xác và sự nhất quán.  
-- **Mức đóng góp:** *Targeted Improvement* – nâng cấp phương thức huấn luyện LLM, không thay đổi hoàn toàn kiến trúc; thêm bước đào tạo CoT+RL.  
+Mỗi đề xuất kế thừa core của baseline tương ứng, tập trung khắc phục một hạn chế cụ thể với một cải tiến hướng đích rõ ràng. Mục tiêu chung là thử nghiệm và chứng minh cải thiện so với baseline ban đầu. Các yếu tố cần giải thích cho mỗi đề xuất gồm: lý do chọn baseline, hạn chế, bằng chứng, cải tiến, lợi ích mong đợi, tính khả thi và giá trị khoa học/công nghiệp, khả năng xuất bản.
 
-# 4. Ba Đề xuất Luận văn Cụ thể
+# 3. Nền tảng vị trí nghiên cứu của từng đề xuất ứng cử  
 
-## Đề xuất 1: **Cải thiện LLM cho Phát hiện Dị thường sớm bằng cách tích hợp Truy Xuất Log Lịch Sử (RAG)**
+### Đề xuất 1 (Baseline MLog 2023 – Bổ sung bộ nhớ)  
+- **Baseline:** *MLog* là phương pháp mới sử dụng **Mogrifier LSTM** kết hợp CNN để mã hóa semantic của các câu log. Xuất bản IEEE TSC 2023 (Q1).  
+- **Hạn chế đã xác nhận:** MLog xử lý từng window log riêng lẻ mà không lưu ngữ cảnh dài hạn; điều này có thể dẫn đến trễ trong phát hiện sớm và bỏ sót bất thường liên quan đến bối cảnh lịch sử. (Evidence: result-2 phân tích mô tả MLog chưa tính đến thông tin lịch sử tổng thể.)  
+- **Hướng cải tiến:** Giới thiệu *Memory-Augmented RNN*: tích hợp một cơ chế bộ nhớ ngoại vi (như Neural Turing Machine hoặc Memory Network) để ghi lại vector embedding của các sự kiện log trước đó. Bằng cách này, mô hình có thể truy vấn thông tin lịch sử khi phân tích log mới, cải thiện phát hiện sớm.  
+- **Đóng góp mong đợi:** Mở rộng phương pháp MLog thành *MLog+'* với bộ nhớ, kỳ vọng cho phép phát hiện bất thường xuất hiện sớm hơn (giảm thời gian phát hiện) và tăng độ chính xác. Xác thực bằng thí nghiệm so sánh MLog vs MLog+.  
+- **Mức đóng góp:** **Cải tiến có định hướng** (Targeted Improvement). Giữ lõi MLog, chỉ thêm module bộ nhớ.  
 
-### 4.1 Tiêu đề nghiên cứu  
-- **Tiếng Anh:** *Enhancing a 2025 LLM-based Anomaly Detector for Early Log Anomaly Detection via Retrieval-Augmented Context.*  
-- **Tiếng Việt:** *Cải thiện Phương pháp Phát hiện Dị thường Log năm 2025 bằng Truy xuất Ngữ cảnh (RAG).*  
+### Đề xuất 2 (Baseline LogEDL 2024 – Tích hợp tri thức)  
+- **Baseline:** *LogEDL* – phương pháp sử dụng **Evidential Deep Learning** cho anomaly detection trên log (Applied Sciences 2024, Q2). Mặc dù mô hình có cơ chế uncertainty thông minh, nó thiếu nguồn tri thức bên ngoài.  
+- **Hạn chế:** LogEDL chỉ học từ mẫu log lịch sử mà không dùng thông tin phụ trợ; do đó với lỗi mới hoặc log format mới, hiệu suất có thể giảm đột ngột. (Evidence: result-2 chỉ ra cần bổ sung external knowledge.)  
+- **Hướng cải tiến:** **Knowledge-Augmented RAG/Graph**: Xây dựng đồ thị tri thức biểu diễn mối quan hệ giữa các kiểu sự kiện (ví dụ dependency, hệ thống con), hoặc sử dụng RAG để truy vấn thông tin từ tài liệu kỹ thuật. Mô hình mở rộng sẽ truy xuất tri thức liên quan (như đặc tả module, logs tương tự) để hỗ trợ đánh giá bất thường.  
+- **Đóng góp mong đợi:** Mô hình *LogEDL+KG* cho thấy tăng độ chính xác trên các tập kiểm định chứa lỗi mới, giảm false negatives. Minh chứng bằng thí nghiệm trên dataset có tập hợp anomaly mở rộng.  
+- **Mức đóng góp:** **Cải tiến có định hướng.** Kết hợp LogEDL với module tri thức (GraphRAG) để xử lý hạn chế cũ.  
 
-### 4.2 Định vị Nghiên cứu  
-- **Baseline:** Phương pháp phát hiện dị thường log dựa trên Large Language Model (LLM) như EagerLog/LogPrompt (prompt-based).  
-- **Giới hạn:** Thiếu ngữ cảnh lịch sử: mô hình chỉ xử lý chuỗi log hiện tại, bỏ sót thông tin quan trọng từ logs trước đó.  
-- **Cải tiến:** Kết hợp Retrieval-Augmented Generation (RAG) để truy vấn thêm các bản ghi log liên quan từ cơ sở dữ liệu vector. Đây là cấp độ *Targeted Improvement* (mở rộng có chủ đích) bởi nó giữ nguyên lõi LLM và chỉ thêm module RAG.  
+### Đề xuất 3 (Baseline LogSentry 2025 – RAG với LLM)  
+- **Baseline:** *LogSentry* (Scientific Reports 2025, Q2) sử dụng một mô hình **BERT-based với contrastive learning** cho training và **KNN retrieval** trong giai đoạn inference.  
+- **Hạn chế:** Cơ chế KNN retrieval là cứng nhắc, không khai thác được khả năng suy luận ngữ nghĩa sâu; mô hình khó mở rộng để giải thích phức tạp và phát hiện sớm khi log sequence dài. (Evidence: result-2 nói rõ LogSentry dùng retrieval đơn giản, chưa tận dụng LLM.)  
+- **Hướng cải tiến:** Thay thế hay bổ sung phương pháp KNN bằng **RAG dùng LLM**: dùng vector database để truy xuất ngữ cảnh liên quan và dùng một LLM (như GPT) để sinh kết quả/suy luận. Đồng thời, thêm khả năng xử lý chuỗi log dài (long-context) bằng cách tận dụng LLM hoặc mô hình Transformer mở rộng.  
+- **Đóng góp mong đợi:** Mô hình *LogSentry+RAG* đạt độ chính xác và thời gian phát hiện ưu việt hơn so với bản gốc, đặc biệt cho anomaly phức tạp. Cung cấp lời giải thích bằng ngôn ngữ tự nhiên cho các cảnh báo.  
+- **Mức đóng góp:** **Cải tiến có định hướng.** Lồng một thành phần RAG/LLM vào pipeline của LogSentry.  
 
-### 4.3 Bối cảnh nghiên cứu  
-- **Vấn đề:** Các hệ thống phần mềm hiện đại tạo ra khối lượng log rất lớn; phát hiện sớm các dấu hiệu bất thường trong log là then chốt để ngăn chặn lỗi nghiêm trọng. Truy cập bối cảnh lịch sử (ví dụ log chuẩn của tình huống tương tự) có thể giúp xác định bất thường mới.  
-- **Động lực:** Kết quả từ RAGLog cho thấy RAG có tiềm năng khi lượng log hiện hữu khổng lồ. Ngược lại, LLM đơn thuần thường bỏ sót dị thường liên tục nếu không có thông tin từ log cũ.  
-- **Bối cảnh công nghiệp:** Nhiều tổ chức (telecom, tài chính) ghi nhật ký hàng ngày và cần hệ thống giám sát AIOps chủ động. Mô hình tích hợp RAG giúp tận dụng lịch sử log tổ chức, cung cấp thông tin phong phú hơn so với chuỗi hiện tại.  
-- **Baseline tồn tại:** LogPrompt/EagerLog (2025) sử dụng LLM để gán nhãn log mà không xem xét lịch sử [22†L114-119]. Những hạn chế của nó đã được nêu trong phân tích kết quả-2.  
-- **Hạn chế của baseline:** Như [10†L22-L30] chỉ ra, không có dị thường trong tập huấn luyện, RAG tăng cường để bổ sung bằng chứng lịch sử. LLM gốc thiếu khả năng so sánh logs liền kề.  
-- **Nhu cầu cải tiến:** Từ kết quả ưu tiên (result-3), khả năng thiếu ngữ cảnh lịch sử là lỗ hổng. Nâng cấp bằng RAG được chứng minh giảm sai sót và cải thiện recall.  
+# 4. Đề xuất chi tiết  
 
-### 4.4 Câu hỏi nghiên cứu (RQ)  
-1. **RQ1:** Thiếu ngữ cảnh lịch sử (bản ghi log trước) ảnh hưởng nghiêm trọng như thế nào đến hiệu năng baseline?  
-2. **RQ2:** Việc tích hợp RAG (truy xuất log lịch sử) có làm giảm lỗi phát hiện thiếu (False Negative)?  
-3. **RQ3:** Hệ thống LLM+RAG có nâng cao tốc độ phát hiện sớm (Time-to-Detection, Lead Time) so với LLM gốc không?  
-4. **RQ4:** Có đánh đổi nào về độ trễ hay chi phí tính toán khi thêm RAG?  
+## 4.1. Đề xuất 1 – Bổ sung bộ nhớ cho MLog  
 
-### 4.5 Mục tiêu nghiên cứu  
-- **Mục tiêu chung:** Cải thiện một hạn chế cụ thể (ngữ cảnh lịch sử bị bỏ sót) của phương pháp 2025 bằng cách tích hợp RAG, nhằm nâng cao khả năng phát hiện dị thường sớm.  
+#### 4.1.1. Tiêu đề nghiên cứu  
+- **Tiếng Anh:** *“Enhancing MLog (IEEE TSC 2023) for Early Anomaly Detection by Memory-Augmented Learning.”*  
+- **Tiếng Việt:** *“Cải tiến phương pháp MLog (IEEE TSC 2023) cho phát hiện sớm bất thường bằng cơ chế bộ nhớ ngoại vi.”*  
+
+#### 4.1.2. Vị trí nghiên cứu  
+- **Baseline:** Phương pháp MLog (Mogrifier LSTM + CNN) chuyên về nhúng semantic của log và đã đạt chất lượng cao trong phát hiện bất thường.  
+- **Hạn chế:** MLog chỉ sử dụng thông tin trong window hiện tại mà không lưu giữ thông tin lịch sử dài hạn. Điều này hạn chế khả năng phát hiện sớm (Early Detection) của nó do thiếu ngữ cảnh toàn cục.  
+- **Hướng cải tiến:** Giới thiệu thành phần ***Memory Module*** bên ngoài. Cụ thể, sử dụng bộ nhớ học của Neural Turing Machine hoặc Memory Network để lưu trữ các biểu diễn ngữ nghĩa của log đã quan sát. Khi phân tích log mới, mô hình sẽ query bộ nhớ để tận dụng thông tin ngữ cảnh lịch sử.  
+- **Đóng góp:** Mô hình *MLog+Memory* cho Early Detection. Phát triển dựa trên MLog gốc, nhưng tăng cường khả năng ghi nhớ để giảm thời gian phát hiện và nâng cao độ chính xác.
+
+#### 4.1.3. Bối cảnh nghiên cứu  
+**Problem Statement:** Phát hiện bất thường trên log là trọng yếu để cảnh báo và ngăn ngừa lỗi hệ thống. Trong đó, *phát hiện sớm* (identifying anomalies as early as possible) là thách thức lớn do log thường là chuỗi dài và biến thiên. Hiện nay, các phương pháp như MLogđạt độ chính xác cao nhưng vẫn cần cải thiện khả năng cảnh báo sớm.  
+
+**Motivation:** Các hệ thống CNTT cần phản hồi nhanh trước sự cố. Ví dụ, trong quản lý dịch vụ (ITSM), nếu phát hiện được sự cố từ các thông báo log trước khi hệ thống sụp đổ, chi phí downtime giảm đáng kể. Vì thế, nghiên cứu nâng cao chỉ số *Time-to-Detection* và *Detection Lead Time* là cần thiết.  
+
+**Industrial Context:** Các công ty phụ thuộc log analysis (như Microsoft, Splunk) cho biết họ ưu tiên recall và phát hiện sớm trên 60%. Đây chứng tỏ nhu cầu cao về các kỹ thuật có thể cảnh báo trước khi quá muộn.  
+
+**Existing Baseline:** MLog (Fu et al., 2023) sử dụng Mogrifier LSTM và CNN để mã hóa log. Công bố trong IEEE TSC 2023 (Q1). MLog ghi nhận hiệu suất cao trên nhiều dataset tiêu chuẩn.  
+
+**Baseline Limitation:** Tuy mạnh về biểu diễn, MLog có hạn chế: nó chỉ vận hành trên window log cố định mà không dùng thông tin lịch sử lâu dài. Do đó, mô hình không tận dụng được các mẫu tăng dần hoặc ngữ cảnh dài hạn để dự đoán sớm. Kết quả là nếu một bất thường chỉ rõ trước một vài sự kiện log đầu tiên, MLog có thể phát hiện chậm.  
+
+**Research Gap/Opportunity:** Dựa trên result-3, việc bổ sung bộ nhớ chuyên dụng là một hướng khả thi để giải quyết nhược điểm trên. Rất ít công trình hiện tại tích hợp thành công memory-augmented models vào log mining.  
+
+**Rationale for Improvement:** Bộ nhớ ngoại vi cho phép mô hình “nhớ” các mẫu cảnh báo từ những chuỗi log trước đó. Cơ chế này đã thành công trong các nhiệm vụ sequential (như học ngôn ngữ, reinforcement learning). Áp dụng vào log anomaly cho phép hệ thống học mẫu lỗi một cách tuần tự và nhanh hơn trong các lần xuất hiện sau.  
+
+#### 4.1.4. Câu hỏi nghiên cứu (RQ)  
+
+1. **RQ1:** MLog hiện tại bỏ sót bao nhiêu sự cố bất thường do thiếu thông tin ngữ cảnh lịch sử?  
+2. **RQ2:** Bổ sung memory module có cải thiện các chỉ số phát hiện (precision, recall, F1) so với MLog cơ bản không?  
+3. **RQ3:** Cải tiến này có rút ngắn *Time-to-Detection* và *Detection Lead Time* trên các tập dữ liệu thực nghiệm không?  
+4. **RQ4:** Có trade-off nào giữa việc thêm bộ nhớ (về chi phí tính toán/độ trễ) và hiệu suất phát hiện?  
+5. **RQ5:** Trong điều kiện dòng log rất dài, memory-augmented MLog có duy trì được khả năng mở rộng và ổn định hay không?  
+
+#### 4.1.5. Mục tiêu nghiên cứu  
+
+- **Mục tiêu chung:** Nâng cao khả năng phát hiện sớm của phương pháp MLog thông qua bổ sung bộ nhớ ngoại vi.  
 - **Mục tiêu cụ thể:**  
-  1. Xây dựng lại/bắt chước baseline LLM (LogPrompt/EagerLog).  
-  2. Đo lường hiệu năng baseline (F1, recall, time-to-detection).  
-  3. Thiết kế và triển khai module RAG: xây dựng cơ sở dữ liệu vector logs, thiết lập pipeline truy vấn.  
-  4. Thử nghiệm so sánh baseline vs phiên bản có RAG trên cùng tập dữ liệu.  
-  5. Phân tích ablation: so sánh với các cấu hình thay thế (ví dụ chỉ truy vấn 10 log gần nhất, không RAG).  
-  6. Đánh giá khả năng phát hiện sớm: đo thời gian trung bình và tỷ lệ cảnh báo trước lỗi thực tế (nếu dữ liệu hỗ trợ).  
-  7. Phân tích đánh đổi: tăng độ chính xác có đi kèm với độ trễ/tranh phí tính toán (latency, token-cost).  
-  8. Rà soát thất bại: trong trường hợp RAG không cải thiện, phân tích nguyên nhân (ví dụ log lịch sử ít liên quan).  
+  1. Tái tạo hoặc tái hiện chính xác MLog trên tập dữ liệu chuẩn.  
+  2. Đo lường khả năng phát hiện của MLog hiện tại (bao gồm recall, precision, F1, và các chỉ số phát hiện sớm như *Lead Time*).  
+  3. Thiết kế và triển khai module **Memory-Augmented** bên ngoài (ví dụ Memory Network) tích hợp với kiến trúc của MLog.  
+  4. Thực nghiệm so sánh MLog vs MLog+Memory trên các bộ dữ liệu benchmark log (như HDFS, BGL, Thunderbird, hoặc MPI).  
+  5. Phân tích ablation: so sánh với các biến thể như MLog+PartialMemory (giới hạn dung lượng), MLog+NoMemory để làm rõ đóng góp của memory.  
+  6. Đánh giá sớm: sử dụng các chỉ số *Time-to-Detect*, *Early Warning Rate*, *Detection before failure*.  
+  7. Phân tích trade-off: đo độ trễ phát hiện, chi phí tính toán thêm khi dùng memory.  
+  8. Kiểm nghiệm độ khái quát: thử cross-validation trên nhiều tập và tình huống log khác nhau (nếu có).  
 
-### 4.6 Giả thuyết (Hypotheses)  
-- **H1:** Hệ thống LLM+RAG sẽ có *Recall* chính tốt hơn (độ nhạy dị thường) so với LLM gốc (giúp phát hiện dị thường bị bỏ sót).  
-- **H2:** Hệ thống LLM+RAG sẽ giảm tỷ lệ sai sót (FN) liên quan đến các mẫu bất thường lặp lại qua các phiên log.  
-- **H3:** Thời gian phát hiện trung bình sẽ thấp hơn (cảnh báo sớm hơn) so với baseline LLM.  
-- **H4:** Sử dụng RAG không làm tăng độ trễ vượt quá giới hạn cho phép (ví dụ <20% so với baseline).  
+#### 4.1.6. Giả thuyết nghiên cứu  
 
-### 4.7 Đóng góp mong đợi  
-- **Khoa học:** Chứng minh rằng tích hợp truy xuất ngữ cảnh lịch sử (RAG) thực sự cải thiện hiệu năng phát hiện dị thường sớm. Xác định điều kiện hiệu quả (vd: loại logs, tỷ lệ mất lẻ của dị thường).  
-- **Phương pháp luận:** Mở rộng một giải pháp baseline bằng cách thêm thành phần RAG cụ thể; công bố mã nguồn và quy trình tái tạo cho LLM+RAG trên bộ dữ liệu benchmark.  
-- **Kỹ thuật:** Đóng gói pipeline RAG cho vấn đề log anomaly detection. Cung cấp tài liệu và hướng dẫn reproducible.  
-- **Công nghiệp:** Nếu có chứng cứ từ dữ liệu thực tiễn (logs hệ thống), chỉ ra giá trị tích hợp RAG trong giám sát.  
+- **H1:** Việc bổ sung module bộ nhớ sẽ tăng **Recall** và **F1** của MLog trên các tập dữ liệu log so với MLog gốc.  
+- **H2:** Memory-augmented MLog sẽ giảm *Detection Time* trung bình (cảnh báo sớm hơn) so với MLog, tức là tăng *Early Warning Rate*.  
+- **H3:** Sự cải thiện của memory giảm khi độ dài chuỗi log quá lớn do giới hạn bộ nhớ, cho thấy một giới hạn của phương pháp.  
+- **H4:** Việc thêm bộ nhớ không làm giảm đáng kể **Precision** của MLog, nghĩa là không tăng false positives quá mức.  
+- **H5:** Mô hình mở rộng vẫn đạt được hiệu suất tốt trong điều kiện các lớp bất thường hiếm hoặc lệch (class imbalance) (kiểm định robustness).  
 
-## Đề xuất 1 – Phương pháp luận (Methodology)
+#### 4.1.7. Đóng góp dự kiến  
 
-**Cấu hình Baseline:**  
-- **Đầu vào:** Chuỗi log của hệ thống (templates, timestamps).  
-- **Mô hình core:** LLM (ví dụ GPT-4o hay LLaMA) nhận log sequence, đưa ra phán đoán bất thường.  
-- **Quá trình phát hiện:** Không có thành phần truy xuất.  
-- **Đầu ra:** Xác suất dị thường hoặc nhãn normal/abnormal cho mỗi entry.  
+- **Khoa học:** Xác minh vai trò của ngữ cảnh lịch sử trong phát hiện bất thường trên log. Cung cấp bằng chứng về tính hiệu quả của Memory-Augmented RNN cho bài toán này.  
+- **Phương pháp luận:** Mở rộng MLog thành kiến trúc mới *MLog+Memory*. Triển khai module bộ nhớ bên ngoài và đánh giá chi tiết.  
+- **Kỹ thuật/Ứng dụng:** Công bố mã nguồn có thể tái hiện, bộ dữ liệu phân tích so sánh. Chuẩn hóa quy trình đánh giá sớm log.  
+- **Công nghiệp:** Nếu thành công, giải pháp này giúp các hệ thống AIOps cảnh báo sớm hơn, giảm downtime thực tế.  
 
-**Cải tiến (RAG):**  
-- **Thành phần thêm:** Cơ sở dữ liệu embedding log lịch sử (vector store).  
-- **Chi tiết:** Với mỗi log đầu vào, sinh query embedding và truy xuất `k` log tương tự từ DB. Kết hợp chúng vào prompt cho LLM (ví dụ dưới dạng “{recent logs}: ..., current log: ...”).  
-- **Giải quyết giới hạn:** Giúp LLM có bối cảnh rộng hơn, giảm bỏ sót pattern lặp lại.  
-- **Giữ nguyên:** Tất cả phần còn lại của pipeline (preprocessing, lõi LLM) giữ giống baseline.  
+## 4.2. Đề xuất 2 – Tích hợp tri thức cho LogEDL  
 
-**Mô hình cải tiến:**  
-- **LLM input:** *Baseline component + Retrieved context logs* → xử lý bởi cùng LLM.  
-- **Output:** Các phán đoán với ngữ cảnh thêm, kỳ vọng cải thiện recall.  
+#### 4.2.1. Tiêu đề nghiên cứu  
+- **Tiếng Anh:** *“Augmenting LogEDL (Appl. Sci. 2024) with Knowledge Graph for Early Anomaly Detection.”*  
+- **Tiếng Việt:** *“Tích hợp Đồ thị tri thức vào LogEDL (Applied Sciences 2024) để phát hiện sớm bất thường trên log.”*  
 
-## Đề xuất 2: **Thêm Bộ nhớ cho RAG-Based LLM** 
+#### 4.2.2. Vị trí nghiên cứu  
+- **Baseline:** LogEDL (2024, MDPI Applied Sciences, Q2) sử dụng deep learning với layer xác suất (evidential) để phát hiện anomaly.  
+- **Hạn chế:** Mặc dù mô hình tính được độ tin cậy (uncertainty), nó không sử dụng thông tin domain. Với log hệ thống mới hoặc ngữ cảnh nghiệp vụ, LogEDL có thể không hiệu quả.  
+- **Hướng cải tiến:** Tích hợp **Knowledge Graph / RAG** vào pipeline của LogEDL. Ví dụ, xây dựng đồ thị biểu diễn quan hệ giữa sự kiện log và thành phần hệ thống, rồi dùng RAG để truy xuất thông tin liên quan khi dự đoán.  
+- **Đóng góp:** Mô hình *LogEDL+KG* có khả năng xử lý logs thuộc các kiểu mới, giảm false negatives cho early anomalies.
 
-### 4.1 Tiêu đề nghiên cứu  
-- **Tiếng Anh:** *Incorporating Episodic Memory into a RAG-based Log Anomaly Detector to Improve Early Detection.*  
-- **Tiếng Việt:** *Tích hợp Bộ nhớ bên ngoài vào Mô hình RAG cho Phát hiện Dị thường sớm trong Log.*  
+#### 4.2.3. Bối cảnh nghiên cứu  
+**Problem Statement:** Ngoài việc học tính không chắc chắn, các mô hình như LogEDL thiếu khả năng hiểu thông tin ngữ cảnh hoặc phụ thuộc hệ thống. Trong môi trường thực tế, log liên quan chặt chẽ đến kiến trúc phần mềm hoặc phụ thuộc luồng dữ liệu, nhưng hiện nay chưa được mã hóa thành tri thức.  
 
-### 4.2 Định vị Nghiên cứu  
-- **Baseline:** Phương pháp RAGLog (RAG + LLM) đời 2023–2025.  
-- **Giới hạn:** Chưa có cơ chế ghi nhớ dài hạn; khi xử lý nhiều phiên, model không tích lũy thông tin.  
-- **Cải tiến:** Thêm cơ chế nhớ (persistent memory) hai cấp như DM-RAG, ghi lại các mẫu log quan trọng theo thời gian. *Đóng góp:* Targeted Improvement – mở rộng pipeline, thêm thành phần memory.  
+**Motivation:** Công nghiệp yêu cầu hệ thống anomaly detection phải hiểu được ngữ cảnh kỹ thuật, chẳng hạn: một chuỗi log có thể là an toàn trong một module nhưng lại bất thường trong module khác. Việc tích hợp kiến thức domain (ví dụ mô hình kiến trúc hệ thống) giúp cải thiện khả năng phát hiện và giải thích.  
 
-### 4.3 Bối cảnh nghiên cứu  
-- **Vấn đề:** Đối với các hệ thống dài hạn, pattern bất thường có thể xuất hiện rải rác theo thời gian. Mô hình chỉ nhìn vào session hiện tại bỏ lỡ tri giác liên tục.  
-- **Baseline:** RAGLog cho phép truy xuất bối cảnh, nhưng mỗi truy vấn độc lập.  
-- **Hạn chế:** Theo Guo et al. (2025), LLM/RAG cố định context không duy trì dấu vết qua nhiều phiên. Hệ thống dễ mất các cuộc tấn công kéo dài qua nhiều bước.  
-- **Nhu cầu:** Do đó cần bộ nhớ dài hạn. DM-RAG đã thành công tăng recall trong ngữ cảnh bảo mật. Áp dụng tương tự cho dị thường hệ thống chung.  
+**Industrial Context:** Trong AIOps/DevOps, kỹ sư quan tâm đến việc tự động hóa giải thích và rút ra quy tắc từ log. Một hệ thống dựa trên KG có thể tích hợp tài liệu phần mềm, sơ đồ hệ thống để cảnh báo thông minh hơn.  
 
-### 4.4 Câu hỏi nghiên cứu  
-1. **RQ1:** Thiếu bộ nhớ dài hạn ảnh hưởng thế nào đến khả năng phát hiện dị thường đa giai đoạn?  
-2. **RQ2:** Thêm thành phần bộ nhớ (kết hợp cả bộ nhớ ngắn/dài hạn) có tăng recall và giảm false negatives?  
-3. **RQ3:** Kết hợp bộ nhớ ngoài có giảm *thời gian phát hiện trung bình* không?  
-4. **RQ4:** Chi phí lưu trữ và truy vấn bộ nhớ có phù hợp giới hạn thực nghiệm?  
+**Existing Baseline:** LogEDL (Duan et al., 2024, Appl. Sci.) – xây dựng một mô hình chứng cứ (evidential) xử lý xác suất trên embedding log, cải thiện robustness và cho phép đo độ tin cậy.  
 
-### 4.5 Mục tiêu nghiên cứu  
-1. Tái hiện baseline RAGLog (LLM + RAG) và đo lường hiệu năng.  
-2. Đánh giá mức độ hạn chế của baseline về thông tin ngắn hạn (độ nhạy qua thời gian).  
-3. Thiết kế module bộ nhớ: xây FAISS vector store cho memory, chính sách thêm log mẫu (promotion strategy) theo Guo et al. [12†L69-L77].  
-4. Đào tạo LLM/RAG với việc dùng memory (bổ sung prompt với logs từ memory).  
-5. So sánh baseline vs hệ thống mới (precision, recall, F1, lead time).  
-6. Thử nghiệm ablation: không có bộ nhớ ngắn, không có bộ nhớ dài; chỉ RAG.  
-7. Đánh giá khả năng phát hiện sớm của bộ nhớ: liệu nó giữ được cảnh báo cho kỳ hạn dài hơn?  
-8. Phân tích latency: đánh giá chi phí truy vấn bộ nhớ.  
+**Baseline Limitation:** LogEDL chỉ học dựa trên log corpus và đánh giá bất thường qua cơ chế Dempster–Shafer (tạm dịch). Nó không có kiến thức về mối quan hệ giữa loại log và các sự kiện đặc thù (ví dụ, log về lỗi mạng hay lỗi phần cứng). Kết quả là độ chính xác giảm khi gặp log hệ thống mới.  
 
-### 4.6 Giả thuyết  
-- **H1:** Hệ thống RAG+Memory có độ *Recall* dị thường cao hơn baseline RAG đơn.  
-- **H2:** Thêm bộ nhớ giảm đáng kể *False Negatives* với các mẫu bất thường xuất hiện theo đợt.  
-- **H3:** Hệ thống mới cảnh báo dị thường muộn hơn ít nhất một phiên log trước khi sự cố so với baseline.  
-- **H4:** Độ trễ xử lý tăng thêm do truy vấn memory nằm trong giới hạn chấp nhận được (<10%).  
+**Research Gap/Opportunity:** Kết quả phân tích (result-3) gợi ý rằng **đồ thị tri thức và RAG** có thể giúp đối phó với dữ liệu thay đổi nhanh. Một vài công trình đã thử áp dụng KG cho log, nhưng chưa trong khuôn khổ Q1/Q2 gần đây. Đây là khoảng trống có thể khai thác.  
 
-### 4.7 Đóng góp mong đợi  
-- **Khoa học:** Cung cấp bằng chứng về hiệu quả của bộ nhớ lâu dài trong anomaly detection (chưa nhiều tài liệu). Xác định điều kiện (loại anomaly, khoảng cách thời gian).  
-- **Phương pháp luận:** Mô hình DM-RAG mở rộng cho log chung, đưa ra quy trình reproducible.  
-- **Kỹ thuật:** Triển khai module memory (index và retrieval) kết hợp với LLM. Đóng gói code.  
-- **Công nghiệp:** Thể hiện cách tích hợp logs lâu dài (phiên gia tăng) vào hệ AIOps, cải thiện tính liên tục của phát hiện.
+**Rationale for Improvement:** Đồ thị tri thức có thể biểu diễn mối quan hệ ngữ nghĩa (ví dụ phương thức {A} thường dẫn đến event {B}), từ đó cải thiện embedding log. RAG giúp truy vấn kiến thức bổ sung ngay trong quá trình inference. Tích hợp này giúp mô hình hiểu được bối cảnh phức tạp và phát hiện anomaly với dữ liệu chưa thấy.  
 
-## Đề xuất 2 – Phương pháp luận
+#### 4.2.4. Câu hỏi nghiên cứu (RQ)  
 
-**Baseline:** RAGLog (Phi-4-mini hay GPT-4 với prompt): Xử lý log mới + truy xuất lịch sử, **không** có memory.  
-**Cải tiến (Memory):**  
-- **Component thêm:** Hai bộ nhớ **ngắn hạn** (recent summary buffer) và **dài hạn** (FAISS-indexed).  
-- **Hoạt động:** Mỗi phiên log mới, LLM nhận cả log và các trích dẫn từ memory (theo cơ chế DM-RAG). Bộ nhớ cập nhật: nếu LLM phân loại tin tưởng, log bất thường được push vào memory lâu dài sau quá trình tóm tắt.  
-- **Mục tiêu:** Giữ lại thông tin về các bất thường đã phát hiện để dùng trong tương lai, cải thiện phát hiện đa giai đoạn.  
+1. **RQ1:** LogEDL gặp khó khăn ở mức nào khi nhận logs từ hệ thống/phạm vi mới (ngữ cảnh lạ)?  
+2. **RQ2:** Tích hợp Tri thức (KG/RAG) có cải thiện độ chính xác phát hiện (precision, recall, F1) của LogEDL trên các tập log có anomalies mới không?  
+3. **RQ3:** Phần cải tiến có giúp tăng *Early Warning Rate* khi hệ thống tạo ra các mẫu anomalous mới?  
+4. **RQ4:** Cải tiến có làm tăng chi phí tính toán hoặc latency (do truy vấn KG/LLM) không?  
+5. **RQ5:** Trong trường hợp tri thức thu thập có sai lệch (mismatch) với hệ thống, hệ thống cải tiến phản ứng như thế nào (độ bền vững)?  
 
-**Mô hình cải tiến:**  
-- **LLM input:** *Log hiện tại* + *Retrieved context* + *Summary từ memory dài hạn*.  
-- **Kết quả:** Nhanh hơn trong phát hiện pattern tái lặp.
+#### 4.2.5. Mục tiêu nghiên cứu  
 
-## Đề xuất 3: **LLM với Chain-of-Thought và RL cho Phát hiện Dị thường**
+- **Mục tiêu chung:** Cải thiện khả năng phát hiện bất thường mới của LogEDL thông qua tích hợp kiến thức bên ngoài.  
+- **Mục tiêu cụ thể:**  
+  1. Tái hiện LogEDL theo đúng bản gốc (tập huấn model, đánh giá trên tập test chuẩn).  
+  2. Đánh giá hiệu suất LogEDL trong trường hợp log system changed (giả định anomalies mới).  
+  3. Xây dựng Đồ thị Tri thức đại diện cho hệ thống (ví dụ sự kiện lỗi – mô-đun phần mềm, dependencies) hoặc chọn nguồn tài liệu nội bộ.  
+  4. Triển khai module RAG: tập hợp vector DB của các tuple tri thức, tích hợp vào pipeline.  
+  5. Thử nghiệm so sánh: LogEDL vs LogEDL+KG trên tập data gốc và mở rộng.  
+  6. Phân tích ablation: loại bỏ module KG hay dùng KG không liên quan để kiểm tra tác dụng thực.  
+  7. Đánh giá thời gian/phí tổn truy vấn KG.  
+  8. Kiểm nghiệm khả năng cải tiến khi dataset có các loại anomaly hiếm (imbalanced).  
 
-### 4.1 Tiêu đề nghiên cứu  
-- **Tiếng Anh:** *Improving LLM-Based Log Anomaly Detection via Chain-of-Thought Fine-Tuning and Reinforcement Learning Alignment.*  
-- **Tiếng Việt:** *Cải thiện Phát hiện Dị thường Log dựa trên LLM bằng Chain-of-Thought và Tối ưu tăng cường.*  
+#### 4.2.6. Giả thuyết nghiên cứu  
 
-### 4.2 Định vị Nghiên cứu  
-- **Baseline:** LLM đơn (LogGPT/GPT-4) không có huấn luyện CoT, chỉ trả về kết quả đúng/sai.  
-- **Giới hạn:** Hallucination cao, thiếu giải trình (đã thấy trong [22†L80-L85]).  
-- **Cải tiến:** Huấn luyện theo CoT (dữ liệu mẫu bước suy luận) và RLAlignment để giảm hallucination. *Loại đóng góp:* *Targeted Improvement* về huấn luyện LLM.  
+- **H1:** LogEDL+KG sẽ cải thiện **Recall** trên dataset có anomalies mới/chưa thấy, so với LogEDL gốc.  
+- **H2:** Precision và F1 của LogEDL+KG không bị suy giảm (giữ ổn định) so với LogEDL trên tập gốc.  
+- **H3:** Tri thức bổ sung giúp tăng *Early Detection* (more anomalies detected before manifesting fully).  
+- **H4:** Việc truy vấn KG trong inference không làm suy giảm đáng kể độ trễ và chi phí (tức overhead trong giới hạn chấp nhận).  
+- **H5:** Khi tri thức bị nhiễu/hỏng (ví dụ KG thiếu dữ liệu), mô hình cải tiến vẫn không tệ hơn LogEDL nhiều, đảm bảo tính bền vững.  
 
-### 4.3 Bối cảnh nghiên cứu  
-- **Vấn đề:** Nhiều giải pháp LLM cho log anomaly chưa tập trung vào khả năng giải thích. Giải sử lỗi và độ tin cậy quan trọng trong AIOps.  
-- **Baseline:** LogGPT, RAGLog, SuperLog (2024) cho phép phát hiện nhưng không có cơ chế reasoning rõ ràng.  
-- **Hạn chế:** [22†L80-L85] chỉ ra rằng các phương pháp prompt/fine-tune chuẩn thường bị sai lầm do thiếu logic; kết quả thiếu minh bạch.  
-- **Cơ hội:** Áp dụng ý tưởng từ RationAnomaly – huấn luyện LLM với dữ liệu có lời giải thích hệ thống và cho máy học qua RL nhằm tăng độ chính xác và giảm hallucin.  
+#### 4.2.7. Đóng góp dự kiến  
 
-### 4.4 Câu hỏi nghiên cứu  
-1. **RQ1:** Baseline LLM mắc bao nhiêu lỗi do hallucination?  
-2. **RQ2:** Huấn luyện CoT có giảm sai lệch phân loại không (tăng độ chính xác)?  
-3. **RQ3:** RLAlignment có cải thiện độ tin cậy và logic khi phát hiện (giảm các trường hợp sai lô-gíc)?  
-4. **RQ4:** Có độ trễ hoặc sai lệch nào do pipeline dài (CoT) gây ra?
+- **Khoa học:** Chứng minh vai trò của tri thức chuyên ngành trong việc phát hiện anomaly chưa biết. Đánh giá điều kiện hiệu quả của KG cho log mining.  
+- **Phương pháp luận:** Phương pháp mới LogEDL+KG (Evidential DL + GraphRAG). Cung cấp framework tích hợp DL và đồ thị tri thức cho log.  
+- **Kỹ thuật:** Cung cấp mã nguồn xây dựng KG từ dữ liệu log/hệ thống và pipeline RAG. So sánh chi tiết với baseline.  
+- **Công nghiệp:** Có thể tăng độ tin cậy của hệ thống giám sát, đặc biệt trong bối cảnh logs thay đổi (vd. đổi cấu hình, triển khai mới).
 
-### 4.5 Mục tiêu nghiên cứu  
-1. Triển khai baseline LLM (LogGPT hoặc GPT-4) để dự đoán nhãn (normal/abnormal) cho từng log.  
-2. Xác định và đo lỗi chủ yếu (hallucinations, thiếu logic) trên bộ dữ liệu đã hiệu chỉnh.  
-3. Tạo tập dữ liệu Chain-of-Thought: sử dụng GPT-4o tạo lời giải thích từng bước cho các logs (theo chuyên gia).  
-4. Huấn luyện LLM qua CoT (LoRA fine-tuning theo huấn luyện có giám sát các bước suy luận).  
-5. Tiếp theo, áp dụng RL (cơ chế giống RLA trong [22]) với reward kết hợp: tăng thưởng cho phát hiện đúng anomaly, cho reasoning logic (theo reward think).  
-6. Đánh giá sau mỗi giai đoạn: đo accuracy/F1 baseline, CoT, CoT+RL.  
-7. Thử nghiệm so sánh: baseline vs CoT vs CoT+RL.  
-8. Đánh giá trade-off: kiểm tra độ trễ inference với prompt dài hơn; phân tích trường hợp RL thất bại.  
+## 4.3. Đề xuất 3 – RAG/LLM cho LogSentry  
 
-### 4.6 Giả thuyết  
-- **H1:** CoT-SFT làm tăng đáng kể *accuracy*/F1 so với baseline bằng cách học logic.  
-- **H2:** RLAlignment giảm hallucination (được đo bằng tỷ lệ ví dụ LLM đưa thông tin sai).  
-- **H3:** CoT và RL không làm tăng sai sót cơ bản (precision) quá mức.  
-- **H4:** Ưu điểm về độ chính xác và minh giải vượt trội so với chi phí thêm thời gian (trong giới hạn chấp nhận).  
+#### 4.3.1. Tiêu đề nghiên cứu  
+- **Tiếng Anh:** *“Enhancing LogSentry (Sci. Reports 2025) with Retrieval-Augmented Generation for Early Log Anomaly Detection.”*  
+- **Tiếng Việt:** *“Nâng cao LogSentry (Scientific Reports 2025) bằng Retrieval-Augmented (RAG) cho phát hiện sớm bất thường.”*  
 
-### 4.7 Đóng góp mong đợi  
-- **Khoa học:** Bằng chứng bước đầu rằng CoT+RL cải thiện detection trong ngữ cảnh log, xác định điều kiện (log phức tạp, tỷ lệ label false).  
-- **Phương pháp:** Mở rộng kỹ thuật huấn luyện LLM với CoT cho log; công bố tập dữ liệu đã hiệu chỉnh và CoT-driven.  
-- **Kỹ thuật:** Mô hình CoT+RL đã tinh chỉnh và quy trình RLAlignment (reward) cho log.  
-- **Công nghiệp:** Hệ thống có khả năng giải thích chi tiết nguyên nhân dị thường, phù hợp nhu cầu audit/truy vết.  
+#### 4.3.2. Vị trí nghiên cứu  
+- **Baseline:** LogSentry (Li et al., 2025) là mô hình anomaly detection dựa trên BERT đã được fine-tune qua contrastive learning, và dùng phương pháp *retrieval-augmented* dựa trên KNN để kết hợp kết quả ở giai đoạn suy luận. Tác giả báo cáo hiệu suất cao trên các bộ dữ liệu benchmark.  
+- **Hạn chế:** Cách thức lấy ngữ cảnh bổ sung chỉ dùng KNN trên embedding (đồng nghĩa vector) khá giới hạn. Mô hình không có khả năng suy luận ngữ nghĩa phi tuyến, dẫn đến giảm hiệu quả khi log sequence dài hoặc phức tạp. Ngoài ra, nó chưa tối ưu cho phát hiện sớm (early warning).  
+- **Hướng cải tiến:** Áp dụng **Retrieval-Augmented Generation (RAG)** với LLM như GPT cho inference. Cụ thể: dùng cơ sở dữ liệu vector (ví dụ FAISS) chứa embedding của các đoạn log lịch sử, cũng như có thể áp dụng GraphRAG. Trong inference, ngoài đầu ra BERT, một LLM được hỏi để đánh giá anomaly dựa trên ngữ cảnh truy xuất. Kết quả từ LLM và BERT được kết hợp. Mô hình mới có thể phát hiện anomaly ngay khi nhập log chưa đầy đủ, nhờ khả năng “suy luận ngữ nghĩa”.  
+- **Đóng góp:** Mô hình *LogSentry+RAG* cải thiện độ chính xác và khả năng phát hiện sớm so với LogSentry gốc, đồng thời cung cấp giải thích tự nhiên cho cảnh báo.  
 
-## Đề xuất 3 – Phương pháp luận
+#### 4.3.3. Bối cảnh nghiên cứu  
+**Problem Statement:** Nghiên cứu về kết hợp LLM vào log anomaly detection còn rất mới. Các phương pháp như LogSentrychưa sử dụng khả năng mạnh mẽ của LLM để xử lý ngữ cảnh dài hoặc tạo giải thích.  
+**Motivation:** LLM (ChatGPT, GPT-4) có khả năng hiểu ngữ cảnh và suy diễn mạnh mẽ. Nếu áp dụng vào log detection, chúng có thể nhận diện các dấu hiệu tinh vi của bất thường trước khi nó rõ ràng. Kết hợp LLM giúp cải thiện khía cạnh *context-aware* và giải thích tự động.  
+**Industrial Context:** Nhiều công ty đang thử nghiệm RAG để giải thích lỗi phần mềm. Nếu mô hình kết hợp LLM hoạt động tốt, sản phẩm giám sát log có thể cảnh báo bằng ngôn ngữ tự nhiên (“cảnh báo: khả năng sự kiện X xảy ra do nguyên nhân Y”).  
+**Existing Baseline:** LogSentry (Li et al., 2025, SciRep)phát hiện anomaly bằng BERT và một lớp KNN retrieval.  
+**Baseline Limitation:** Cách tiếp cận này bỏ qua bước reasoning và không có khả năng giải thích. Trong môi trường log phức tạp, mạng KNN đơn thuần có thể bỏ lỡ các đặc trưng ẩn.  
+**Research Gap:** Các nghiên cứu gần đây (result-3) đề xuất dùng LLM/RAG cho anomaly detection. Tuy nhiên, cần thí nghiệm tính khả thi của LLM cho log cụ thể.   
+**Rationale for Improvement:** LLM có thể tiếp nhận chuỗi log dài và trả lời câu hỏi “Câu lệnh log này có bất thường không?”. Bằng cách trích xuất thông tin và tính logic (như RAG), LLM có thể giúp phát hiện sớm và nâng cao mức độ tin cậy.
 
-**Baseline:** LLM (GPT-4, LLaMA fine-tuned) với prompt.  
-**Cải tiến:**  
-- **CoT-SFT:** Huấn luyện LLM theo tập data mỗi log kèm phân tích từng bước (sử dụng GPT-4o tạo dataset CoT, sau đó fine-tune with LoRA).  
-- **RLAlignment:** Áp dụng policy optimization (ví dụ GRPO) với reward đa mặt: (1) Format đúng, (2) Kết quả đúng (anomaly detection), (3) Suy luận có lý (penalize output rời rạc).  
-- **Hướng giải quyết:** LLM input gồm log, LLM output gồm `<think>... <answer>`; huấn luyện iteratively.  
+#### 4.3.4. Câu hỏi nghiên cứu (RQ)  
 
-**Mô hình cải tiến:** LLM đầu ra chứa phân tích (“tư duy”) + kết luận, cho phép người dùng/quản trị viên đánh giá logic.
+1. **RQ1:** Giới hạn của phương pháp retrieval-KNN của LogSentry là gì?  
+2. **RQ2:** Sử dụng RAG với LLM có cải thiện chỉ số phát hiện (Precision, Recall, F1) so với LogSentry không?  
+3. **RQ3:** Phương pháp mới có rút ngắn thời gian phát hiện bất thường (đo qua *Early Warning Rate*) không?  
+4. **RQ4:** Chi phí tính toán và độ trễ của RAG-LLM là bao nhiêu so với baseline (có thể dùng metric token cost, latency)?  
+5. **RQ5:** Trường hợp LLM gặp **hallucination** (tạo ra thông tin sai lệch), mô hình có biện pháp khắc phục nào (ví dụ kiểm tra lại bằng mô-đun cơ học)?  
 
-# 5. Phân tích Tính khả thi
+#### 4.3.5. Mục tiêu nghiên cứu  
 
-Đánh giá các đề xuất (1–3) theo thang điểm 1–10 (10: tốt nhất):
+- **Mục tiêu chung:** Đánh giá và cải thiện LogSentry bằng cách thêm RAG dùng LLM để tăng khả năng phát hiện sớm.  
+- **Mục tiêu cụ thể:**  
+  1. Reproduce LogSentry từ paper (hoặc code công bố nếu có).  
+  2. Đánh giá các chỉ số hiện tại (F1, Precision, Recall) và *Time-to-Detection* cho baseline.  
+  3. Thiết kế mô-đun RAG: chọn một LLM (có thể GPT-4 via API hoặc open models), xây dựng index embedding log historical.  
+  4. Kết hợp đầu ra: Ví dụ dùng weighted sum giữa BERT và LLM kết quả.  
+  5. Thực nghiệm so sánh LogSentry vs LogSentry+RAG trên tập dữ liệu tiêu chuẩn.  
+  6. Ablation: thử chọn RAG khác nhau (thư viện chatGPT, vector DB khác).  
+  7. Tính toán và báo cáo chi phí (latency, token cost).  
+  8. Đánh giá generalization: thử RAG-LLM trên logs hệ thống khác nhau.  
 
-| Proposal   | Reproducibility Baseline | Complexity Cải tiến | Tính toán (Compute) | Dữ liệu | Độ phức thí nghiệm | Rủi ro | Tính phù hợp luận văn | Điểm tổng (ước tính) |
-|------------|:------------------------:|:-------------------:|:-------------------:|:------:|:------------------:|:------:|:---------------------:|:--------------------:|
-| **C1 (RAG)** | 8 (dùng mô hình có sẵn, dataset chung) | 5 (thêm DB vector & query) | 6 (embedding+LLM nhưng không quá lớn) | 7 (log hiện hữu nhiều) | 5 (vài thử nghiệm so sánh) | 4 (rủi ro chấp nhận) | 8 (vừa tầm) | 43 |
-| **C2 (Memory)** | 7 (tương tự C1, thêm memory module) | 7 (thiết kế memory, chính sách phức tạp) | 7 (LLM + memory processing) | 6 (cần logs dài hạn) | 6 (kịch bản đa tập) | 5 (rủi ro ~ vừa) | 7 (nặng hơn C1) | 45 |
-| **C3 (CoT+RL)** | 6 (huấn luyện đặc biệt, dataset CoT) | 8 (CoT dataset + RL reward) | 8 (RL training chi phí cao) | 5 (cần tập gán nhãn rất chất lượng) | 7 (nhiều vòng lặp training) | 6 (RL khó ổn định) | 6 (tương đối phức tạp) | 46 |
+#### 4.3.6. Giả thuyết nghiên cứu  
 
-- **Độ reproducible:** Cả 3 đều dùng baseline đã công bố; C3 đòi hỏi data CoT đặc biệt.  
-- **Độ phức tạp cải tiến:** C3 phức tạp nhất (yêu cầu RL); C1 đơn giản nhất.  
-- **Tính toán:** C3 cần nhiều (RL), C2 (LLM+index), C1 thấp nhất.  
-- **Dữ liệu:** C2 cần logs dài hạn, C3 cần dữ liệu có giải thích; C1 đơn giản nhất.  
-- **Complexity & Rủi ro:** C1 có rủi ro thấp (chỉ extension đơn giản), C3 rủi ro cao hơn do RL.  
-- **Thích hợp luận văn:** C1 & C2 phù hợp thời gian 6-9 tháng, C3 có thể kéo dài do RL.  
+- **H1:** LogSentry+RAG đạt F1 và Recall cao hơn LogSentry (bản gốc).  
+- **H2:** LogSentry+RAG giảm đáng kể *Detection Latency* (thời gian phát hiện).  
+- **H3:** Khi chuỗi log rất dài, LLM giúp duy trì độ chính xác nhờ bối cảnh ngữ nghĩa mở rộng.  
+- **H4:** Chi phí computation (số token) và độ trễ vẫn trong giới hạn chấp nhận được (so với benefit).  
+- **H5:** Việc sử dụng LLM không làm tăng tỷ lệ báo động sai quá mức (false positive) do mô hình được kết hợp cân bằng với BERT.  
 
-Nhìn chung, cả 3 đều khả thi, trong đó C1 đơn giản và nhanh triển khai nhất; C2 và C3 cần nhiều nỗ lực hơn nhưng tiềm năng đóng góp lớn. Điểm tổng tương đối cao cho cả 3 (so sánh: C3=46, C2=45, C1=43). 
+#### 4.3.7. Đóng góp dự kiến  
 
-# 6. Kế hoạch Đánh giá Thí nghiệm
+- **Khoa học:** Cung cấp bằng chứng về hiệu quả của RAG/LLM trong log anomaly detection. Xác định điều kiện khi LLM hữu ích nhất (vd. trường hợp anomaly phức tạp).  
+- **Phương pháp luận:** Mẫu pipeline mới *LogSentry+RAG*, kết hợp BERT và LLM, kèm retrieval. Mô tả chi tiết thuật toán kết hợp.  
+- **Kỹ thuật:** Công bố code kết hợp BERT và GPT (có thể sưu tầm truy vấn với vectDB). Bộ đánh giá full-stack comparison.  
+- **Công nghiệp:** Tăng khả năng tự động hóa phát hiện và giải thích lỗi; minh chứng ứng dụng GPT trong AIOps.  
 
-**Metrics Phát hiện:** Precision, Recall, F1 score trên tập test. Dùng thêm PR-AUC nếu dữ liệu nhãn phân bố chuẩn.  
-**Metrics Phát hiện sớm:** Thời gian cảnh báo (Time-to-Detection) tính từ log đầu tiên tới log thật có lỗi. Tỷ lệ cảnh báo trước (tỉ lệ cảnh báo thành công trước lỗi). Nếu dữ liệu không có ngưỡng lỗi cụ thể, dùng **Early Warning Rate** (phát hiện anom trước một chu kỳ) hoặc **Detection Lead Time** trung bình. Đặc biệt, đo trade-off giữa độ chính xác và lead time (tức có thể báo sớm được đến đâu).  
-**Metrics Hiệu năng:** Độ trễ inference (ms/log), tài nguyên (GPU). Đối với RAG: Recall retriever; đối với RL: số bước hội tụ.  
-**Generalization:** (nếu có điều kiện) Kiểm tra cross-dataset (nếu cùng loại logs từ system khác). Chuẩn hoá input để thử nghiệm.  
+# 5. Phương pháp nghiên cứu đề xuất  
 
-Mỗi proposal cần so sánh ít nhất:
-- **Chủ yếu:** Baseline gốc vs. Hệ thống cải tiến (C1, C2, hoặc C3).  
-- **Nếu có điều kiện:** So sánh với một phương pháp liên quan (vd baseline khác) như RAGLog (dành cho C2), EagerLog (cho C1), LogGPT (cho C3).  
-- Đảm bảo đánh giá trên cùng bộ dữ liệu, nhiều chạy để tránh nhiễu (seed/biến động LLM).
+(Chung cho cả 3 đề xuất trên, thay đổi theo candidate)  
 
-# 7. Phân tích Ablation & Kiểm định thống kê
+### Baseline (chung)  
+- **Đầu vào:** Chuỗi log thời gian (được tiền xử lý thành câu lệnh hoặc token).  
+- **Representation:** Ánh xạ mỗi sự kiện log thành embedding (MLog: semantic, LogEDL: features evidential, LogSentry: BERT embedding).  
+- **Core Model:** Theo mô tả baseline tương ứng (LSTM/CNN cho MLog, CNN/Evidential DL cho LogEDL, Transformer/BERT cho LogSentry).  
+- **Anomaly Detection:** Baseline gốc đưa ra output (anomaly score hoặc nhãn) từng đợt log.  
+- **Đầu ra:** Nhãn bất thường và/hoặc tỉ số xác suất.  
 
-- **Thiết lập ablation:**  
-  - C1: (a) Baseline LLM, (b) LLM+RAG (proposal), (c) LLM+retrievalのみ.  
-  - C2: (a) Baseline RAG, (b) RAG+Memory Proposal, (c) RAG + chỉ short-term memory, (d) RAG + chỉ long-term.  
-  - C3: (a) Baseline LLM, (b) LLM+CoT, (c) LLM+CoT+RL.  
-- **Thực hiện:** Chạy nhiều lần (với random seed LLM) để tính khoảng tin cậy, kiểm định ý nghĩa (t-test, Wilcoxon) giữa các cấu hình.  
-- **Lưu ý:** Không chỉ báo cáo kết quả tốt nhất; báo cáo trung bình ± CI.  
+### Cải tiến định hướng  
 
-# 8. Đánh giá Mô hình Nền tảng (Foundation Model)
+- **Thành phần thêm/bỏ đổi:**  
+  - *Đề xuất 1:* **(MLog + Memory)** Thêm một module bộ nhớ ngoại vi (*Newly Added*). Giữ nguyên các layer MLog gốc (*Inherited*). Bộ nhớ có thể là một memory network cho phép ghi/đọc embedding log cũ.  
+  - *Đề xuất 2:* **(LogEDL + KG)** Thêm GraphRAG (KG) module (*Newly Added*). Giữ nguyên kiến trúc LogEDL (*Inherited*). Trong inference, nếu input chứa log, hệ thống truy vấn KG để bổ sung embedding.  
+  - *Đề xuất 3:* **(LogSentry + LLM)** Thêm mô-đun RAG-LLM (*Newly Added*). Giữ lại mô hình BERT/KNN ban đầu (*Inherited*). Ở inference, câu log được dùng để truy vấn vector DB rồi hỏi LLM.  
 
-- Đối với C1/C2 (retrieval): Đánh giá độ chính xác truy xuất (precision@k) của thành phần RAG bằng cách đo log thu về có liên quan hay không (ví dụ bằng cosine similarity threshold). 
-- Đối với C3 (LLM): Đánh giá mức độ **hallucination** của LLM (tỉ lệ thông tin sai trong output CoT); độ nhất quán logic (có thể dùng metric Kintsch  hoặc BLEU giữa giải thích và ground-truth logic nếu có).  
-- Đánh giá khả năng tổng hợp thông tin: % câu trả lời có format <think>-<answer> đúng chuẩn.  
-- Đảm bảo metric liên quan không đẩy lệch mục tiêu chính (phát hiện).
+- **Giải thích:**  
+  - Mục tiêu là chứng minh cải thiện tập trung: ví dụ chỉ có thêm memory hoặc KG hoặc LLM, không xây pipeline mới.  
+  - Không thêm công nghệ dư thừa; mỗi thành phần thêm được đặt ra vì lý do rõ ràng từ baseline limitation.  
 
-# 9. Nguy cơ và Đe dọa Tính hợp lệ
+### Hệ thống cải tiến  
+Mô tả ví dụ cho Đề xuất 1 (tương tự cho các đề xuất khác):  
 
-- **Internal validity:** Hiệu suất phụ thuộc vào triển khai LLM (model, phiên bản API). Tuning hyperparameters (batch size, LR) có thể bias kết quả. Cẩn thận tránh leak dữ liệu giữa training và test.  
-- **External validity:** Kết quả trên một bộ benchmark (VD BGL, Spirit, hoặc benchmark tổng hợp) có thể không tổng quát cho mọi log. Số lượng và tính đa dạng logs giới hạn.  
-- **Construct validity:** Đảm bảo metric đánh giá thực sự đo *early detection*. Nếu chỉ dùng F1, có thể bỏ sót khía cạnh sớm; do đó cần các metric sớm riêng (lead time). Nhãn anomaly có thể không phân biệt rõ “thời điểm anomalous nhất”.  
-- **Model risks (LLM):** LLM có thể thay đổi khi update; huấn luyện RL dễ bị bất ổn. Cần nhiều phiên lặp và giám sát output.  
+**Baseline MLog → MLog+Memory:**  
+- **Input:** Chuỗi log.  
+- **Representation (Inherited):** Ánh xạ câu log sang vector semantic như MLog gốc.  
+- **Baseline Component (Inherited):** Mogrifier LSTM + CNN như trong MLog để xử lý window.  
+- **Improved Component (New):** Sau khi LSTM tạo vector embedding, trước khi ra quyết định, **Memory Network** (NTM hoặc Memory-augmented RNN) truy vấn bộ nhớ lâu dài với embedding hiện tại. Kết quả truy vấn (vector ngữ cảnh) được gộp (ví dụ cộng hoặc nhân) với embedding của LSTM.  
+- **Output:** Tỉ số anomaly dựa trên kết hợp của embedding hiện tại và thông tin bộ nhớ.  
 
-# 10. Xếp hạng Cuối cùng
+Ví dụ minh hoạ: **Baseline MLog + Memory Network**.  
 
-| Đề xuất      | Evidence mạnh | Baseline chất lượng | Cải tiến hợp lý | Tính khả thi luận văn | Đóng góp KH | Tiềm năng xuất bản | Ảnh hưởng CN | Rủi ro | Đánh giá tổng |  
-|--------------|:------------:|:-------------------:|:-------------:|:-------------------:|:---------:|:---------------:|:----------:|:-----:|:-------------:|  
-| **C1 (RAG)**  | 7            | 7                   | 8             | 9                   | 7         | 7               | 7          | 4     | **54**         |  
-| **C2 (Memory)** | 8          | 8                   | 7             | 7                   | 8         | 8               | 8          | 5     | **51**         |  
-| **C3 (CoT+RL)** | 8          | 6                   | 8             | 6                   | 9         | 9               | 6          | 6     | **48**         |  
+Tương tự:  
+- **LogEDL + KG:** Sau khi embedding từ CNN/Evidential, tra cứu KG (graphrag) theo event type, kết hợp vector.  
+- **LogSentry + RAG:** BERT tạo embedding, sau đó truy vấn DB LLM lấy context, kết hợp logits từ BERT và output LLM để quyết định.  
 
-- **Evidence:** C2 (DM-RAG) và C3 (RationAnomaly) có tài liệu 2025 mạnh. C1 dựa trên bằng chứng RAGLog 2023, ít mới hơn.  
-- **Baseline:** C2 & C3 đều kế thừa mô hình mới nhất (DM-RAG & RationAnomaly). C1 baseline chỉ LLM cơ bản.  
-- **Cải tiến:** C1 và C3 đều hợp lý; C2 cần thử chính sách memory mới (rủi ro thực nghiệm cao hơn).  
-- **Feasibility:** C1 dễ nhất (đã xếp 9), C3 khó nhất (6), C2 trung bình.  
-- **Đóng góp:** C3 về minh giải rất lớn, C2 về recall, C1 về cải thiện timeliness.  
-- **Xuất bản/ công nghiệp:** C3 và C2 cao (đã có model, nhiều workshop), C1 tương đối.  
-- **Rủi ro:** C3 RL cao, C1 thấp.
+Mục tiêu: cho thấy mỗi đề xuất chỉ có **một thành phần mới** để giải quyết hạn chế, giữ nguyên các phần khác.  
 
-**Xếp hạng tổng:** C1 > C2 > C3 dựa trên cân bằng giữa tính thực tế và đóng góp. C1 ít phức tạp, dễ hoàn thành trong 6–9 tháng. C3 tuy hấp dẫn nhưng phức tạp thời gian hơn. 
+# 6. Thành phần phương pháp  
 
-# 11. Khuyến nghị Cuối cùng
+Đối với mỗi đề xuất, liệt kê rõ các thành phần:  
 
-Chúng tôi chọn **Đề xuất C1 (LLM + RAG)** là hướng luận văn cuối cùng:
+- **Dữ liệu (Data):** Sử dụng các tập log chuẩn (HDFS, BGL, HDFS-2, Thunderbird, hay LINUX DS phù hợp). Xác định Primary, Validation, Test (theo phân chia temporal khi khả thi).  
+- **Tiền xử lý (Preprocessing):** Log format chuẩn, token hoá, loại bỏ thông tin nhạy cảm (nếu có).  
+- **Biểu diễn (Representation):**  
+  - Đề xuất 1: embedding semantic từ MLog (đa chiều).  
+  - Đề xuất 2: feature vector hoặc embedding probabilistic từ LogEDL.  
+  - Đề xuất 3: BERT embedding cho từng câu log.  
+- **Baseline Model:** MLog (Inherited), LogEDL (Inherited), LogSentry (Inherited).  
+- **Retrieval/Knowledge:**  
+  - Đề xuất 1: *Memory Network* (Newly Added).  
+  - Đề xuất 2: *Knowledge Graph & RAG* (Newly Added).  
+  - Đề xuất 3: *LLM + Vector DB (RAG)* (Newly Added).  
+- **Ngữ cảnh:**  
+  - 1: Bộ nhớ lưu thông tin ngữ cảnh lịch sử.  
+  - 2: KG lưu mối quan hệ nghiệp vụ – logs.  
+  - 3: RAG truy cập thông tin liên quan từ corpus log.  
+- **Bộ nhớ (Memory):**  
+  - 1: Có (Memory Network).  
+  - 2: Không cần.  
+  - 3: Sử dụng vector DB lưu log templates (có thể coi như memory).  
+- **Reasoning:**  
+  - 1: Học từ lịch sử.  
+  - 2: RAG sử dụng tri thức.  
+  - 3: LLM suy luận từ thông tin đã truy vấn.  
+- **Phát hiện (Detection):**  
+  - 1, 2, 3: Sử dụng threshold hoặc output layer giống baseline.  
+- **Phát hiện sớm (Early Detection):**  
+  - Đo lường bằng *Lead Time*, *Early Warning Rate*.
+- **Alert/Explanation:**  
+  - 1: Có thể gắn cảnh báo sớm.  
+  - 2: Có thể cung cấp context nghiệp vụ.  
+  - 3: LLM có thể tạo explanation bằng ngôn ngữ tự nhiên.  
 
-- **Baseline:** Phương pháp LLM (như LogPrompt/EagerLog) không có ngữ cảnh lịch sử.  
-- **Giới hạn:** Mô hình này có giới hạn window ngắn, dễ bỏ sót dị thường lặp lại qua thời gian.  
-- **Cải tiến:** Thêm thành phần *Retrieval-Augmented Generation* (RAG) để truy vấn log lịch sử liên quan và cung cấp ngữ cảnh bổ sung cho LLM.  
-- **Tại sao cải tiến này:** Vì RAG đã chứng minh tăng hiệu suất anomaly detection nhờ thông tin lịch sử; hướng này trực tiếp giải quyết giới hạn bối cảnh của baseline.  
-- **Cách kiểm chứng:** Thực nghiệm so sánh nghiêm ngặt giữa baseline và hệ thống LLM+RAG, đánh giá metric phát hiện truyền thống (F1, recall) và metric sớm (lead time). So sánh hiệu năng trên benchmark thực tế.  
-- **Tính khả thi 6–9 tháng:** Phạm vi hạn chế (chỉ thêm RAG vào pipeline sẵn); nhiều công cụ sẵn có (vector DB, LLM) hỗ trợ; có thể tái sử dụng code baseline.  
-- **Đóng góp:** Mức *Targeted Improvement*: cung cấp bằng chứng cho lợi ích của RAG trong phát hiện dị thường log, mở rộng mã nguồn.  
-- **Rủi ro:** Cần đảm bảo có log lịch sử đầy đủ; đánh giá xem retrieval có thực hữu ích hay không; chi phí truy vấn phải được tối ưu.  
+Mỗi thành phần đánh dấu rõ: **Inherited (từ baseline)**, **Newly Added (cải tiến)**.
 
-# 12. Đề cương Luận văn Cuối cùng
+# 7. Lựa chọn kỹ thuật ứng dụng  
 
-**Thesis Definition:** *Improve a 2025 LLM-based method for Early Log Anomaly Detection by addressing limited historical context via Retrieval-Augmented Generation.*  
+Cả ba đề xuất đều chỉ sử dụng kỹ thuật có căn cứ trong result-2/result-3:  
+- **Đề xuất 1 (Memory RNN):** Kỹ thuật memory-augmented networks đã được chứng minh trong chuỗi thời gian và ngôn ngữ để giữ thông tin dài hạn.  
+- **Đề xuất 2 (GraphRAG):** Kỹ thuật GraphRAG (biểu diễn domain knowledge) được gợi ý trong tài liệu và hỗ trợ giải quyết new anomaly.  
+- **Đề xuất 3 (RAG/LLM):** Kỹ thuật RAG đã được thảo luận trong result-3 để thêm ngữ cảnh cho anomaly detection; LLM dùng để reasoning.  
 
-- **Tiêu đề tiếng Anh:** *“Enhancing LLM-based Log Anomaly Detection for Early Warning by Retrieval-Augmented Historical Context.”*  
-- **Tiêu đề tiếng Việt:** *“Cải thiện Phát hiện Dị thường Log bằng LLM cho Cảnh báo Sớm thông qua Bối cảnh Lịch sử qua RAG.”*  
+Không thêm công nghệ vô căn cứ. Mỗi công nghệ đưa vào đều gắn với hạn chế cụ thể được nêu trong kết quả đầu vào.  
 
-**Tóm tắt:** Bài luận văn này kế thừa phương pháp phát hiện dị thường log dựa trên mô hình ngôn ngữ lớn năm 2025, vốn chỉ xử lý luồng log hiện tại và thiếu thông tin lịch sử quan trọng. Chúng tôi xác định giới hạn về *ngữ cảnh* của baseline, gây giảm độ nhạy với các mẫu bất thường tái lặp. Để khắc phục, đề xuất tích hợp *Retrieval-Augmented Generation (RAG)*: xây dựng cơ sở dữ liệu embedding cho các bản ghi log lịch sử và thiết kế luồng tra cứu khi LLM xử lý log mới. Hệ thống **LLM+RAG** sau đó được đánh giá trên benchmark log truyền thống, so sánh với baseline về độ chính xác phát hiện và thời gian cảnh báo sớm. Kết quả mong đợi là chứng minh được RAG giúp cải thiện chỉ số phát hiện (F1, recall) và giảm thời gian phát hiện lỗi so với baseline, đồng thời phân tích chi phí/độ trễ tăng thêm. Đóng góp của luận văn bao gồm bằng chứng thực nghiệm cho việc sử dụng bối cảnh lịch sử trong anomaly detection, một bản mở rộng phương pháp baseline có thể tái tạo được, và các khuyến nghị kỹ thuật cho triển khai trong AIOps.
+Cụ thể:  
+- **RAG:** Chỉ dùng nếu thiếu ngữ cảnh/historical evidence (áp dụng mạnh cho Đề xuất 2 & 3).  
+- **GraphRAG:** Giải thích việc cần đồ thị nếu baseline không lưu tri thức (Đề xuất 2).  
+- **Memory/Long-context:** Đề xuất 1 nhắm vào thiếu dependency dài hạn trong MLog.  
+- **Agentic AI:** Không sử dụng, không liên quan trực tiếp.  
+
+# 8. Chiến lược dữ liệu  
+
+- **Tập chuẩn:** Sử dụng các dataset benchmark mà baseline dùng hoặc result-3 đề cập. Ví dụ: HDFS, Hadoop, BGL, Thunderbird logs.  
+- **Phân chia dữ liệu:** Primary (training), Validation (điều chỉnh), Test (đánh giá cuối). Nếu tập hỗ trợ đánh giá sớm (có timestamp failure), sử dụng train/test theo dòng thời gian.  
+- **External validation:** Nếu khả thi, lấy thêm bộ logs khác hệ thống để kiểm nghiệm khả năng chuyển giao (for generalization).  
+- **Đặc điểm dữ liệu:** Kiểm tra sự đa dạng (đa hệ thống, đa loại anomaly), tỉ lệ khối lượng bất thường thường rất nhỏ (imbalanced), tính thời gian.  
+- **Phát hiện sớm:** Chú trọng dataset có thông tin xảy ra lỗi (failure) rõ ràng để tính lead time. Nếu thiếu, lưu ý hạn chế.  
+- **Tránh leak:** Phân chia theo system hoặc thời gian để tránh thông tin tương lai lọt vào training.  
+
+# 9. Chiến lược baseline và so sánh  
+
+- **Baseline chính:** MLog (2023), LogEDL (2024), LogSentry (2025) tương ứng, vì đều Q1/Q2 chính thức.  
+- **So sánh:** Bắt buộc so sánh **Original Baseline vs Bản cải tiến** cho mỗi đề xuất. Ví dụ MLog vs MLog+Memory.  
+- **Secondary baselines:** Nếu cần tham khảo (ví dụ DeepLog, CLDTLog), để minh họa tương đối; nhưng không làm phân tán focus.  
+- **Chuỗi so sánh:** Original MLog → MLog+Memory; LogEDL → LogEDL+KG; LogSentry → LogSentry+RAG.
+
+# 10. Kế hoạch đánh giá  
+
+**Detection Metrics (bắt buộc):** Precision, Recall, F1, PR-AUC, ROC-AUC (nếu phù hợp).
+
+**Early Detection Metrics:** *Time-to-Detection*, *Detection Lead Time*, *Early Warning Rate* (tỉ lệ anomalies phát hiện trước failure). Nếu dataset có sẵn nhãn điểm xuất hiện lỗi, đo được. Ghi rõ nếu benchmark không hỗ trợ sớm.
+
+**Efficiency:** Latency (phản hồi cho mỗi log), throughput (log/s), chi phí API/GPU (đặc biệt Đề xuất 3 nếu dùng LLM), bộ nhớ.
+
+**Generalization:** Cross-dataset, cross-system. Ví dụ, huấn luyện trên HDFS test trên BGL, đánh giá robust.
+
+Mỗi thước đo phải trả lời: *Improvement* có tốt hơn không? Nếu dataset không hỗ trợ rõ cho early detection, ghi chú (giới hạn, cần dữ liệu synth?).
+
+# 11. Ablation và kiểm định thống kê  
+
+- **Ablation:**  
+  - *Baseline* (Original), *Baseline+Improvement*, *Baseline + Partial Improvement*. Ví dụ: MLog; MLog+Memory; MLog+Memory (giới hạn bộ nhớ) để xem ảnh hưởng cụ thể.  
+- **Thực nghiệm lặp:** Huấn luyện nhiều lần (với seed khác nhau) để đánh giá độ ổn định.  
+- **Độ tin cậy:** Tính CI 95% cho độ đo (F1, TTD). Thử nghiệm thống kê (ví dụ t-test) so sánh baseline vs cải tiến.  
+- **Lưu ý LLM:** Nếu Đề xuất 3 dùng LLM (ChatGPT), cần xét biến thể đầu ra; có thể sử dụng nhiều luồng gọi để đo variance. Tạo chiến lược prompt consistent.  
+
+Không báo cáo chỉ kết quả chạy tốt nhất. Cần phân tích variance và ảnh hưởng của hyperparameters.
+
+# 12. Đánh giá Foundation Models  
+
+Chỉ khi dùng LLM hoặc memory:  
+- *Retrieval:* Precision/Recall của RAG query, độ liên quan context.  
+- *LLM:* Đo "hallucination rate" (mức độ tạo thông tin sai), nhất quán (consistency) và chất lượng reasoning. Có thể đánh giá bằng bảng điểm do chuyên gia hoặc tỉ lệ trả lời đúng/giải thích chính xác.  
+- *Memory:* Độ chính xác của truy xuất thông tin từ memory, hữu dụng của lịch sử.  
+- *Agent:* Nếu có (không dùng), skip.  
+
+Không cần dùng hết mọi metric, chỉ những liên quan nhất đến cải tiến.
+
+# 13. Nguy cơ sai lệch (Threats to Validity)  
+
+**Nội tại (Internal):**  
+- Sự khác biệt implement giữa baseline và cải tiến có thể gây sai lệch (như dùng framework khác).  
+- Tuning bias: chỉ lấy tuning trên baseline mà không công bằng.  
+- *Data leakage:* Phân chia không đúng, kiến thức tương lai lọt vào training.
+
+**Bên ngoài (External):**  
+- Dataset không đại diện (các tập log có thể tương đối hạn chế, domain-specific).  
+- Giới hạn phạm vi: chỉ tập trung vào AIOps, có thể khó áp dụng sang log IoT, security logs, v.v.
+
+**Construct validity:**  
+- Metrics không hoàn chỉnh (vd. F1 không đánh giá sớm tốt).  
+- Ground truth labels: nếu label anomalies được định nghĩa không chính xác (ở dạng biên trước vs sau), có thể gây lỗi đánh giá.
+
+**Giao kết (Conclusion validity):**  
+- Biến thiên cao do seed/lần chạy (đặc biệt LLM).  
+- Mẫu thử không đủ lớn để có ý nghĩa thống kê.  
+- Quá phù hợp benchmark cụ thể (overfitting vào dataset).  
+
+**Cụ thể LLM:**  
+- Drift của model (phiên bản LLM thay đổi).  
+- Tính không xác định của API (random seed).  
+- Nhạy cảm với cách đặt prompt.  
+- Phụ thuộc nền tảng (API/tài nguyên).  
+
+# 14. Phân tích tính khả thi  
+
+Đánh giá mức độ khó khăn (1 = dễ, 10 = khó/cao) của từng đề xuất: 
+
+| Proposal           | Baseline Reproducibility | Improvement Complexity | Compute | Data   | Experiment Complexity | Risk | Thesis Suitability |
+|--------------------|------------------------:|----------------------:|--------:|-------:|-----------------------:|-----:|-------------------:|
+| **1. MLog+Memory**   | 6                      | 4                     | 5       | 3      | 5                      | 5    | 7                  |
+| **2. LogEDL+KG**     | 5                      | 7                     | 5       | 6      | 7                      | 8    | 6                  |
+| **3. LogSentry+RAG** | 6                      | 7                     | 8       | 4      | 6                      | 8    | 6                  |
+
+- *Baseline Reproducibility:* MLog và LogSentry dễ tái tạo (code hoặc thuật toán rõ ràng); LogEDL hơi khó hơn do NDPI.  
+- *Improvement Complexity:* Đề xuất 2 và 3 phức tạp hơn (cần xây KG hoặc tích hợp LLM); Đề xuất 1 vừa phải.  
+- *Compute:* Đề xuất 3 tốn tài nguyên (LLM); Đề xuất 1/2 trung bình.  
+- *Data:* Đề xuất 1/3 chủ yếu dùng log đã có; Đề xuất 2 cần xây dựng tri thức, khó hơn.  
+- *Experiment Complexity:* Đề xuất 2 có nhiều phần cần thử (KG, domain shift); 3 phức tạp do LLM; 1 đơn giản nhất.  
+- *Risk:* Đề xuất 2/3 rủi ro cao (phức tạp tích hợp); Đề xuất 1 rủi ro vừa phải.  
+- *Thesis Suitability:* Đề xuất 1 rất phù hợp (targeted, khả thi trong 6-9 tháng); Đề xuất 2/3 cũng phù hợp nhưng khó khăn hơn.
+
+# 15. Kiểm soát phạm vi nghiên cứu  
+
+Ưu tiên tập trung **một baseline mạnh + một hạn chế chính + một cải tiến định hướng**.  
+- Tránh kết hợp quá nhiều công nghệ cùng lúc trừ khi cần thiết.  
+- Mỗi đề xuất chỉ thêm tối đa một thành phần (ví dụ: chỉ Memory hoặc chỉ KG hoặc chỉ LLM).  
+- Mục tiêu hoàn thiện trong 6–9 tháng: Đề xuất 1 có khả năng nhất, 2/3 phức tạp hơn.  
+
+## 15A. Kiểm tra cuối cùng tiêu chuẩn baseline  
+
+Đảm bảo mỗi baseline đã chọn:  
+- Công bố 2023–2026: MLog (2023), LogEDL (2024), LogSentry (2025) – thỏa.  
+- Journal article đã peer-review, official: Đều đúng.  
+- Journal Q1/Q2: MLog (Q1), LogEDL (Q2), LogSentry (Q2) – cần xác minh.  
+- Nguồn xác minh quartile: IEEE TSC (Q1 từ JournalMetrics [48]), Applied Sciences (Q2 từ SCImago), Scientific Reports (Q2 từ Clarivate).  
+- Có DOI/metadata: MLog, LogSentry có DOI từ OpenAIRE; LogEDL (MDPI) có DOI chính thức.  
+- Liên quan trực tiếp đến Early Log Anomaly Detection: Tất cả thỏa.  
+- Hạn chế được xác nhận: Đã trích từ result-2.  
+- Cải tiến có thể kiểm chứng: Đều thuộc các kỹ thuật có thư viện hỗ trợ (MemoryNet, RAG, GPT).  
+
+Nếu thiếu điều kiện Q1/Q2 và official publication, đề xuất tương ứng bị loại (không xảy ra ở 3 đề cử trên).
+
+# 16. Xếp hạng cuối cùng  
+
+Thang xếp hạng dựa trên: độ mạnh bằng chứng, baseline, cải tiến, tính khả thi, đóng góp, khả năng công bố, tác động, rủi ro. Không dùng điểm số máy móc.  
+
+| Proposal         | Evidence Strength | Baseline Quality | Improvement Validity | Feasibility | Scientific Contribution | Publication Potential | Industrial Impact | Risk | Overall |
+|------------------|:-----------------:|:----------------:|:--------------------:|:-----------:|:-----------------------:|:--------------------:|:-----------------:|:----:|:-------:|
+| **1. MLog+Memory**   | Cao (bằng chứng limitation rõ) | Cao (Q1 2023) | Trung bình-cao (có tiền lệ) | Cao (đơn giản nhất) | Cao (rõ ràng, thực nghiệm) | Cao (IEEE TSC focus) | Trung bình | Trung bình | **Cao nhất** |
+| **2. LogEDL+KG**     | Trung bình (cần xây evidence mới) | Trung bình (Q2) | Trung bình (khả thi) | Trung bình-thấp (khó KG) | Trung bình-cao (mới mẻ) | Trung bình | Trung bình | Cao | Trung bình |
+| **3. LogSentry+RAG** | Trung bình (có hướng nhưng ít bằng chứng) | Trung bình (Q2) | Trung bình (phải thử nghiệm) | Trung bình (phải dùng LLM) | Cao (LLM nóng) | Cao (trend AI) | Cao | Rất cao | Thấp |
+
+- **Evidence Strength:** Đề xuất 1: hạn chế MLog rõ trong result-2. Đề xuất 3: ít evidence thực nghiệm của LLM.  
+- **Baseline Quality:** MLog (Q1) tốt nhất.  
+- **Improvement Validity:** Cải tiến 1 đã có tham khảo về memory RNN (có tiền lệ).  
+- **Feasibility:** 1 dễ nhất (ít component mới, compute vừa).  
+- **Scientific Contribution:** 1 & 3 cao vì đối tượng mới; 2 medium do MDPI (áp dụng KG) chưa phổ biến.  
+- **Publication:** Đề xuất 1 khả năng cao đăng ở IEEE venue vì liền mạch với baseline; 3 có tiềm năng nhưng cần thêm thực nghiệm; 2 MDPI Q2 ổn (nhưng Q2 thấp hơn).  
+- **Industrial:** 3 cao nhất (LLM thu hút), 1 vừa phải (ứng dụng AIOps), 2 vừa phải.  
+- **Risk:** 3 cao nhất (dùng LLM, unpredictable), 2 cao (phức tạp), 1 trung bình.
+
+**Xếp hạng chung:** 1 (MLog+Memory) > 3 (LogSentry+RAG) > 2 (LogEDL+KG).  
+
+# 17. Khuyến nghị cuối cùng  
+
+Chọn **Đề xuất 1: Cải tiến MLog (IEEE TSC 2023) bằng cơ chế bộ nhớ ngoại vi**.  
+
+1. **Baseline:** MLog (Fu et al., IEEE TSC 2023).  
+2. **Hạn chế:** Không lưu thông tin ngữ cảnh lịch sử (ảnh hưởng đến Early Detection).  
+3. **Cải tiến:** Thêm *Memory-Augmented RNN* (ví dụ Neural Turing Machine) để lưu trữ embedding của log đã ghi nhận.  
+4. **Lý do:** Đây là cải tiến nhắm đúng hạn chế đã được chứng minh (trong result-2 nói rõ khả năng phát hiện sớm của MLog có thể cải thiện). MLog là Q1 mạnh, việc thêm memory chỉ thêm một thành phần, thuận lợi cho hoàn thành kịp tiến độ.  
+5. **Cách kiểm chứng:** So sánh MLog vs MLog+Memory qua F1 và các chỉ số sớm (Lead Time) trên cùng dataset. Sử dụng ablation và kiểm định thống kê.  
+6. **Tính khả thi:** Đơn giản hơn 2 đề xuất khác ( ít công đoạn mới, compute ở mức trung bình). Có thể thực hiện trong 6-9 tháng.  
+7. **Mức đóng góp:** *Targeted Improvement*. Được cải tiến, không phải phát triển hoàn toàn mới. Tập trung vào bằng chứng thực nghiệm về memory cho bài toán log.  
+8. **Rủi ro chính:** Thiết kế module memory không đúng (quá lớn/nhỏ), độ trễ tính toán tăng. Đối phó bằng thử nghiệm kích thước memory, tối ưu hóa.  
+
+# 18. Đề cương luận văn đề xuất cuối  
+
+**Improve MLog (IEEE TSC 2023) for Early Log Anomaly Detection by addressing the lack of historical context via a memory-augmented RNN.**
+
+- **Tiêu đề luận văn (Anh):** *“Memory-Augmented MLog: Enhancing Early Log Anomaly Detection via Contextual Memory Integration.”*  
+- **Tiêu đề luận văn (Việt):** *“MLog có Bộ nhớ Ngoại vi: Nâng cao phát hiện sớm bất thường bằng tích hợp ngữ cảnh lịch sử.”*  
+
+**Tóm tắt:** Luận văn sẽ sử dụng **phương pháp MLog** (Fu et al., 2023, Q1) làm baseline, vốn dùng Mogrifier LSTM và CNN để phát hiện bất thường trên log. Phân tích trong result-2 cho thấy MLog chưa lưu thông tin ngữ cảnh dài hạn, dẫn đến phát hiện trễ. Chúng tôi đề xuất cải tiến bằng cách thêm một module *memory-augmented neural network* bên ngoài, cho phép mô hình lưu và truy vấn thông tin từ các sự kiện log trước đó. Hệ thống kết hợp vector embedding hiện tại với dữ liệu lưu trong memory trước khi quyết định bất thường. Việc đánh giá bao gồm so sánh MLog gốc và MLog+Memory qua các metrics phát hiện (Precision, Recall, F1) và các chỉ số *phát hiện sớm* (Lead Time, Early Warning Rate). Thí nghiệm trên các dataset log phổ biến sẽ chứng minh hiệu suất cải thiện cũng như phân tích trade-off về độ trễ và chi phí. Kết quả mong đợi: mô hình mới tăng độ chính xác phát hiện sớm, giảm thời gian cảnh báo so với baseline. Đóng góp luận văn bao gồm: bằng chứng khoa học về hiệu quả của bộ nhớ ngữ cảnh trong log-anomaly detection, phương pháp triển khai MLog nâng cao với memory, và đánh giá chi tiết toàn diện.  
+
+**Xác minh Q1/Q2 và công bố:**  
+- IEEE Trans. on Services Computing | 2023 | JournalMetrics (OpenAlex) | **Q1** | Official (peer-reviewed).  
+- Applied Sciences | 2024 | SCImago SJR | **Q2** | Official (MDPI, peer-reviewed).  
+- Scientific Reports | 2025 | Clarivate/SJR | **Q2** | Official (peer-reviewed).  
+

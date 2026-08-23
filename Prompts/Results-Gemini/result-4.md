@@ -1,235 +1,286 @@
-# **Thiết kế Đề cương và Tuyển chọn Chủ đề Cuối cùng: Nâng cao Phương pháp Phát hiện Sớm Bất thường trên Log Giai đoạn 2025–2026**
+# **Báo Cáo Đề Xuất Nghiên Cứu Luận Văn Thạc Sĩ: Nâng Cấp Phương Pháp Cơ Sở Q1/Q2 Trong Phát Hiện Sớm Bất Thường Dữ Liệu Log**
 
-## **Tổng quan và Bối cảnh Nghiên cứu Chuyên sâu**
+Sự phát triển bùng nổ của các hệ thống phần mềm phân tán, kiến trúc vi dịch vụ (microservices) và cơ sở hạ tầng điện toán đám mây quy mô lớn đã biến dữ liệu log thành nguồn tài nguyên đo lường từ xa (telemetry) quan trọng bậc nhất để duy trì độ tin cậy của hệ thống. Lĩnh vực phân tích dữ liệu log thông minh (Log Intelligence) và ứng dụng Trí tuệ Nhân tạo trong vận hành (AIOps) đang trải qua một quá trình chuyển đổi mô hình học thuật sâu sắc. Phân tích lịch sử cho thấy lĩnh vực này đã tiến hóa từ việc phụ thuộc vào các biểu thức chính quy tĩnh, học máy truyền thống, mạng nơ-ron học sâu, cho đến kỷ nguyên đương đại của các Mô hình Nền tảng (Foundation Models) và Mô hình Ngôn ngữ Lớn (LLMs)1. Bất chấp việc cộng đồng học thuật liên tục công bố các mô hình với độ đo F1 tiệm cận mức hoàn hảo trên các bộ dữ liệu tĩnh, thực tiễn triển khai trong môi trường công nghiệp lại đối mặt với những thách thức hệ thống nghiêm trọng. Khảo sát thực chứng chỉ ra rằng có đến 50% kỹ sư vận hành hệ thống (Site Reliability Engineers \- SREs) từ chối sử dụng các công cụ học sâu hiện hành. Nguyên nhân cốt lõi xuất phát từ việc các mô hình này hoạt động như những "hộp đen" thiếu khả năng diễn giải ngữ nghĩa, đồng thời tạo ra hiện tượng "rác cảnh báo" (alert fatigue) khi hệ thống liên tục báo động sai trước các biến động tải lượng hoặc bản vá phần mềm thông thường1.  
+Nghiêm trọng hơn, phần lớn các giải pháp học sâu hiện nay chỉ giải quyết bài toán phát hiện bất thường mang tính phản ứng (reactive anomaly detection). Trạng thái phản ứng đồng nghĩa với việc hệ thống trí tuệ nhân tạo chỉ nhận diện được sự cố tại thời điểm nó đã bùng phát, hoặc khi lỗi đã gây ra hậu quả phá hủy hệ thống1. Đối với các hệ thống điện toán hiệu năng cao (HPC) hay cơ sở hạ tầng trọng yếu, sự phản ứng chậm trễ này là không thể chấp nhận được. Yêu cầu cấp bách của nền công nghiệp là Phát hiện Sớm Bất thường (Early Log Anomaly Detection \- ELAD). Khái niệm này đòi hỏi các mô hình phải có năng lực nhận diện các dấu hiệu suy thoái mờ nhạt từ các chuỗi log dường như vô hại, từ đó cung cấp một khoảng Thời gian dẫn phát hiện (Detection Lead Time) đủ dài để các cơ chế tự phục hồi hoặc con người có thể can thiệp trước khi đổ vỡ xảy ra1.  
+Báo cáo phân tích chuyên sâu này thiết lập một khung đánh giá khắt khe nhằm định vị một hướng nghiên cứu tối ưu cho luận văn Thạc sĩ. Toàn bộ phân tích tuân thủ nguyên tắc chỉ xem xét các phương pháp cơ sở (baselines) được công bố trên các tạp chí thuộc nhóm Q1/Q2, đã qua phản biện chính thức trong giai đoạn 2023–2026. Thay vì thiết kế một kiến trúc học sâu hoàn toàn mới từ con số không, báo cáo tập trung vào việc phẫu thuật các điểm nghẽn của các phương pháp cơ sở hàng đầu, từ đó ánh xạ đến các cơ hội cải tiến có mục tiêu, khai thác động lực học thời gian và bộ nhớ phiên liên tục để giải quyết triệt để bài toán cảnh báo sớm.
 
-Sự tiến hóa không ngừng của các hệ thống phần mềm phân tán và hạ tầng điện toán đám mây quy mô lớn đang đặt ra những thách thức chưa từng có đối với công tác giám sát, chẩn đoán độ tin cậy và vận hành hệ thống viễn trắc (AIOps). Khi các kiến trúc nguyên khối truyền thống nhường chỗ cho các mạng lưới vi dịch vụ (microservices) lồng ghép phức tạp, dữ liệu nhật ký hệ thống (log data) bùng nổ không chỉ về khối lượng mà còn về độ nhiễu, tính dị thể và tốc độ phát sinh1. Trong bối cảnh công nghiệp này, bài toán Phát hiện Sớm Bất thường trên Log (Early Log Anomaly Detection) đã trở thành phòng tuyến sống còn. Khác biệt hoàn toàn với chẩn đoán hậu sự cố (post-mortem diagnosis), phát hiện sớm đòi hỏi hệ thống phải nhận diện được các sai lệch vi mô ngay từ khi nguyên nhân gốc rễ (root cause) mới nhen nhóm, trao cho các kỹ sư hệ thống một quỹ thời gian quý giá (Early Warning Horizon) để can thiệp trước khi hệ thống sụp đổ hoàn toàn1.  
-Về mặt lịch sử, các hệ thống phân tích đã tiến hóa từ phương pháp đếm tần suất cổ điển (như PCA, SVM) sang các mô hình học sâu (Deep Learning) dựa trên chuỗi lồng ghép như DeepLog, LogAnomaly, và sau đó là các kiến trúc Transformer như LogBERT1. Tuy nhiên, hầu hết các phương pháp học sâu truyền thống này đều bị trói buộc bởi thiết kế "cửa sổ trượt" (sliding windows) tĩnh. Cơ chế này chia cắt dữ liệu thành các khối thời gian hoặc khối số lượng cố định, gây ra hai điểm nghẽn kiến trúc nghiêm trọng: "độ lệch ngữ cảnh" (Context Bias) và "định vị mờ" (Fuzzy Localization)1. Một cửa sổ quá ngắn sẽ cắt đứt chuỗi nhân quả của một lỗi kéo dài, khiến hệ thống bỏ lọt bất thường (False Negatives); trong khi một cửa sổ quá dài lại thu nạp quá nhiều thông điệp bình thường, tạo ra nhiễu nền làm mờ đi các tín hiệu bất thường cục bộ (False Positives)1. Hệ quả là các mô hình này hoàn toàn đi ngược lại với triết lý của Phát hiện Sớm, do chúng buộc phải chờ đợi cửa sổ dữ liệu được lấp đầy trước khi có thể thực hiện bất kỳ phép suy luận nào, trực tiếp làm tăng Thời gian Phát hiện Trung bình (MTTD)2.  
-Bước sang giai đoạn 2025–2026, bản đồ học thuật chứng kiến sự phân kỳ rõ rệt giữa hai trường phái nhằm vượt qua giới hạn của mô hình cửa sổ. Trường phái thứ nhất theo đuổi sự phát triển của các Mô hình Ngôn ngữ Lớn (Foundation Models/LLMs) như LogLLaMA và các hệ thống Truy xuất Tăng cường (RAG) như EnrichLog1. Mặc dù LLMs sở hữu khả năng hiểu ngữ nghĩa zero-shot vượt trội, cho phép chúng đọc hiểu trực tiếp log thô mà không cần phân tích cú pháp, chúng hoàn toàn bất lực trong việc xử lý luồng (streaming). Độ trễ sinh token (inference latency) khổng lồ, chi phí API đắt đỏ, quá trình truy xuất I/O nghẽn cổ chai của Vector Database, và hiện tượng ảo giác (hallucination) trước các chuỗi tham số định lượng mạng đã biến LLMs thành công cụ chẩn đoán (diagnosis) chậm chạp thay vì công cụ phát hiện (detection) thời gian thực1.  
-Trường phái thứ hai, mang tính đột phá về vật lý hệ thống, tập trung vào các kiến trúc luồng sự kiện không sử dụng cửa sổ (window-free event streaming), tiêu biểu là Mạng Đồ thị Động Theo thời gian thực (Continuous-Time Dynamic Graphs \- CTDG)2. Các kiến trúc như TempoLog (2025) loại bỏ hoàn toàn việc gom nhóm log. Thay vào đó, chúng xây dựng một đồ thị liên tục, dự đoán bất thường ngay tại mốc thời gian phát sinh sự kiện thông qua các thông điệp truyền tải giữa các nút mạng (Message Passing), qua đó tối ưu hóa tuyệt đối cho chỉ số MTTD2. Mặc dù sở hữu tốc độ vi giây lý tưởng cho công nghiệp, các kiến trúc CTDG tiên phong lại bộc lộ một nhược điểm chí mạng về khả năng tổng quát hóa khi đối mặt với sự dịch chuyển miền hệ thống (domain shift). Nguyên nhân sâu xa nằm ở việc sử dụng các hàm gộp đặc trưng tĩnh (static fusion) không thể tự điều chỉnh sự chú ý giữa các thuộc tính ngữ nghĩa và thời gian1. Báo cáo này, dưới góc độ của một nhà nghiên cứu cấp cao, sẽ rà soát hệ thống tài liệu 2025–2026, tuyển chọn các phương pháp cơ sở, cô lập những hạn chế đã được chứng minh thực nghiệm, và thiết lập ba đề cương nghiên cứu hoàn chỉnh nhằm nâng cao phương pháp phát hiện sớm, trước khi chốt lại một định hướng mục tiêu duy nhất.
+## **1\. Mục Tiêu Nghiên Cứu**
 
-## **1\. Review of Research Opportunities**
+Mục tiêu tối thượng của báo cáo này là tổng hợp, phân tích và lựa chọn một định hướng nghiên cứu khả thi, đột phá và chặt chẽ nhất cho luận văn Thạc sĩ chuyên ngành. Để đạt được điều này, quá trình thiết kế tuân thủ một chuỗi các mục tiêu hành động cụ thể. Thứ nhất, tiến hành rà soát toàn diện các cơ hội cải tiến (Improvement Opportunities) đã được xác định từ hệ thống văn liệu chất lượng cao. Thứ hai, sàng lọc và chọn lọc tối đa ba ứng viên đề xuất (proposal candidates) xuất sắc nhất, đảm bảo mọi ứng viên đều dựa trên một phương pháp cơ sở Q1/Q2 công bố trong giai đoạn 2023–2026. Thứ ba, phát triển một cấu trúc đề cương nghiên cứu chuyên sâu cho từng ứng viên, đảm bảo tập trung giải quyết một hạn chế cốt lõi hoặc một nhóm hạn chế có liên kết chặt chẽ về mặt nguyên nhân gốc rễ. Thứ tư, đánh giá tính khả thi của các đề xuất trong khuôn khổ thời gian từ 6 đến 9 tháng với nguồn lực phần cứng phòng thí nghiệm tiêu chuẩn. Cuối cùng, thông qua ma trận đánh giá rủi ro và giá trị khoa học, lựa chọn ra một đề xuất duy nhất để định nghĩa thành đề tài luận văn chính thức, tuyệt đối không tạo thêm các khoảng trống nghiên cứu (Research Gaps) mới ngoài các minh chứng đã được thẩm định.
 
-Việc rà soát các cơ hội nghiên cứu được thực hiện dựa trên nguyên tắc kiểm định khắt khe các bằng chứng thực nghiệm từ văn bản khoa học giai đoạn 2025–2026. Mọi ứng viên không đáp ứng tiêu chí về độ minh bạch kiến trúc, tốc độ suy luận luồng (streaming latency), hoặc tiềm ẩn rủi ro đánh giá sai lệch thông qua rò rỉ dữ liệu (data leakage) đều bị loại bỏ2. Cụ thể, các định hướng liên quan đến RAG và GraphRAG (như EnrichLog) bị loại bỏ do tra cứu đồng bộ k-NN sinh ra độ trễ I/O tốn kém, phá vỡ quỹ thời gian cảnh báo sớm1. Các định hướng dựa trên Agentic AI bị loại bỏ vì bản chất điều tra theo mô hình "kéo" (pull-based) của tác tử không thể đáp ứng vai trò giám sát "đẩy" (push-based) của luồng sự kiện tốc độ cao1.  
-Bảng dưới đây trình bày năm cơ hội nghiên cứu cốt lõi được trích xuất và phê phán từ dữ liệu hệ thống, đóng vai trò là nền tảng để lựa chọn các ứng viên đề cương.
+## **2\. Review Research Opportunities**
 
-| Opportunity | Baseline | Limitation | Evidence | Improvement | Benefit | Feasibility | Risk |
+Quá trình tổng hợp và phân tích chéo hệ thống văn liệu từ năm 2023 đến 2026 tiết lộ nhiều khoảng trống học thuật đáng chú ý. Các khoảng trống này được phân loại một cách có hệ thống để phục vụ cho việc ánh xạ cơ hội cải tiến. Bảng 1 trình bày chi tiết các cơ hội nghiên cứu đã được xác định, đi kèm với minh chứng, phương hướng cải tiến, và đánh giá tính khả thi.
+
+| Opportunity | Baseline | Journal / Q1-Q2 Evidence | Limitation | Evidence | Improvement | Benefit | Feasibility | Risk |
+| :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
+| **Tiêm Nhúng Thời gian Động (Time-Delta Augmentation)** | LAnoBERT (2023) | *Applied Soft Computing* (SCImago Q1 / JCR Q1) | Mù lòa trước động lực học thời gian, chỉ sử dụng Absolute Positional Embedding, loại bỏ hoàn toàn khoảng cách thời gian vật lý giữa các sự kiện log2. | Nghiên cứu DualBERT chứng minh việc thiếu tham số thời gian tạo ra tỷ lệ dương tính giả khổng lồ trong các tải bất thường2. | Tiêm Nhúng Thời gian Liên tục (như Time2Vec) trực tiếp vào không gian vector đầu vào của mô hình3. | Giảm mạnh tỷ lệ dương tính giả (FPR) bằng cách nhận diện các sự kiện bình thường nhưng xuất hiện quá nhanh/chậm bất thường3. | Rất Cao (Có mã nguồn HuggingFace, dễ tích hợp vào PyTorch)2. | Thấp (Có thể làm nhiễu nhẹ ngữ nghĩa ngôn ngữ của từ vựng nếu không tinh chỉnh kỹ). |
+| **Bộ nhớ Phiên Trạng thái Liên tục (Continual Session Memory)** | LAnoBERT (2023) | *Applied Soft Computing* (SCImago Q1 / JCR Q1) | Hội chứng thiển cận ngữ cảnh (Contextual Myopia) do giới hạn cửa sổ trượt 512 tokens, không có khả năng đối chiếu sự kiện hiện tại với lịch sử2. | Khảo sát HPC và phương pháp FALL chỉ ra các sự cố thường được báo hiệu từ nhiều giờ trước, yêu cầu tầm nhìn dài hạn2. | Bổ sung hàng đợi bộ nhớ lưu trữ các token đại diện (vector \[CLS\]) của các cửa sổ quá khứ để tính toán khoảng cách ngữ nghĩa3. | Gia tăng trực tiếp Thời gian dẫn phát hiện (DLT), cho phép mô hình nhìn thấu quỹ đạo suy thoái3. | Khá (Yêu cầu thiết kế lại luồng inference và quản lý trạng thái bộ nhớ)3. | Trung bình (Tăng chi phí RAM/VRAM lưu trữ trong lúc suy luận thực tế). |
+| **Đánh giá Tính Độ bất định (Evidential Proactive Scoring)** | LAnoBERT (2023) | *Applied Soft Computing* (SCImago Q1 / JCR Q1) | Cơ chế tính điểm dựa thuần túy vào hàm mất mát MLM mang tính phản ứng (reactive), thiếu ổn định trước dữ liệu chưa từng gặp2. | Khảo sát SRE phàn nàn về bão cảnh báo do mô hình phản ứng thái quá với các mẫu log mới sinh khi hệ thống cập nhật1. | Kết hợp điểm MLM nội tại với khoảng cách vector so với các phiên lịch sử (Mahalanobis distance) hoặc áp dụng Evidential Deep Learning3. | Tăng độ mạnh mẽ (robustness) trước sự tiến hóa cấu trúc log, giảm bão cảnh báo giả3. | Khá (Cần điều chỉnh siêu tham số nhạy bén giữa hai độ đo khác bản chất)3. | Cao (Khó khái quát hóa qua nhiều domain dữ liệu khác nhau). |
+| **Mở rộng chiến lược lấy mẫu (Sequence-Preserving Augmentation)** | AdaLog (2024) | *IEEE Trans. on Industrial Informatics* (JCR Q1) | Kỹ thuật Undersampling làm mất dấu hiệu cảnh báo sớm cực hiếm, giảm độ nhạy đối với các lỗi tinh vi2. | Khảo sát thực nghiệm trên IEEE TSE xác nhận việc lấy mẫu giảm làm phá hủy tính liên kết lịch sử của chuỗi log2. | Thay thế Undersampling bằng các thuật toán tăng cường dữ liệu tập trung bảo vệ chuỗi dẫn xuất cảnh báo3. | Khôi phục độ bao phủ (Recall) ở giai đoạn cửa sổ thời gian cảnh báo sớm3. | Trung bình (Kiến trúc phân cụm tự thích ứng khá phức tạp, khó kiểm soát sự hội tụ)2. | Cao (Rủi ro mất ổn định trong huấn luyện phân cụm động). |
+| **Loại bỏ phụ thuộc Parser tĩnh (Parser-Free Replacement)** | DualBERT (2026) | *IEEE Access* (JCR Q2) | Sự phụ thuộc vào Drain3 khiến mô hình dễ bị tổn thương trước lỗi Out-Of-Vocabulary (OOV) khi phần mềm tiến hóa2. | Các nghiên cứu NeuralLog và LAnoBERT chứng minh lỗi phân tích tĩnh làm suy giảm nghiêm trọng hiệu năng học sâu2. | Thay thế module trích xuất tĩnh Drain3 bằng phương pháp Tokenization phụ từ (WordPiece) hoàn toàn2. | Xóa bỏ rào cản OOV, giữ lại toàn bộ tham số động và ngữ cảnh hệ thống2. | Cao (Có thể tái lập qua việc tách rời hai luồng mô hình Transformer và LSTM)2. | Trung bình (Tăng độ phức tạp khi xử lý chuỗi token dài do WordPiece cắt nhỏ từ). |
+
+Quá trình phân tích rủi ro và giá trị khoa học cho thấy các cơ hội liên quan đến việc tích hợp động lực học thời gian và bộ nhớ dài hạn vào các mô hình học ngôn ngữ (như LAnoBERT) mang lại dư địa nghiên cứu lớn nhất. Việc phụ thuộc vào các parser tĩnh như Drain3 (trong DualBERT) hoặc kỹ thuật Undersampling làm mất dữ liệu (trong AdaLog) đều bộc lộ những rủi ro kiến trúc sâu sắc, khó có thể giải quyết triệt để nếu không thiết kế lại toàn bộ luồng dữ liệu2.
+
+## **3\. Select Top 3 Proposal Candidates**
+
+Chắt lọc từ ma trận cơ hội, ba ứng viên đề xuất xuất sắc nhất được lựa chọn. Mỗi ứng viên đại diện cho một hướng tiếp cận giải quyết điểm nghẽn khác nhau, tuân thủ nghiêm ngặt điều kiện Baseline Q1/Q2 từ 2023-2026.
+
+### **Candidate 1: TAC-LAnoBERT (Time-Aware Continual LAnoBERT)**
+
+* **Baseline:** LAnoBERT (Yukyung Lee et al., *Applied Soft Computing*, Q1, 2023\)2. Phương pháp này được chọn để kế thừa vì nó loại bỏ hoàn toàn bộ phân tích cú pháp tĩnh, giải quyết triệt để lỗi mất mát từ vựng (OOV), đồng thời sở hữu kiến trúc lõi tinh gọn dễ dàng tinh chỉnh.  
+* **Limitation:** Phương pháp bộc lộ sự mù lòa trước khoảng trống thời gian vật lý (Time-Delta) và mắc hội chứng thiển cận ngữ cảnh (Contextual Myopia) do giới hạn đánh giá độc lập từng khối 512 tokens2.  
+* **Targeted Improvement:** Cấy ghép mô-đun Nhúng Thời gian Động (Time-Delta Embedding) vào tensor đầu vào để giúp mô hình cảm nhận nhịp điệu sinh log. Đồng thời, thiết lập Hàng đợi Bộ nhớ Phiên Liên tục (Continual Session Memory) để quản lý các vector trạng thái lịch sử, từ đó đối chiếu độ lệch quỹ đạo3.  
+* **Expected Contribution:** Chuyển đổi cơ chế phản ứng thụ động của LAnoBERT thành một hệ thống cảnh báo sớm (ELAD) chủ động. Cải tiến này hứa hẹn giảm mạnh Tỷ lệ Dương tính Giả (FPR) và kéo dài Thời gian dẫn phát hiện (DLT), mang lại giá trị công nghiệp to lớn trong việc giảm rác cảnh báo1.
+
+### **Candidate 2: Sequence-Preserving Enhanced AdaLog**
+
+* **Baseline:** AdaLog (Ma et al., *IEEE Transactions on Industrial Informatics*, Q1, 2024\)2. Mô hình được kế thừa nhờ năng lực xuất sắc trong việc học bán có giám sát tại các môi trường nhiễu công nghiệp.  
+* **Limitation:** Kỹ thuật lấy mẫu giảm (Undersampling) được sử dụng để xử lý mất cân bằng dữ liệu cực đoan đã vô tình xóa bỏ các dấu hiệu cảnh báo tiền sự cố cực hiếm, phá vỡ tính liên kết thời gian của chuỗi sự kiện2.  
+* **Targeted Improvement:** Thay thế hoàn toàn chiến lược undersampling bằng các thuật toán tăng cường dữ liệu (Data Augmentation) tập trung vào việc bảo vệ các chuỗi sự kiện thiểu số, tối ưu hóa luồng dữ liệu giả nhãn tự thích ứng3.  
+* **Expected Contribution:** Khôi phục độ nhạy của hệ thống đối với các lỗi tinh vi tiến triển chậm. Đóng góp tập trung vào phương pháp luận xử lý dữ liệu (data-centric) hơn là kiến trúc mô hình lõi.
+
+### **Candidate 3: Parser-Free DualBERT Enhancement**
+
+* **Baseline:** DualBERT (IEEE Access, Q2, 2026\)2. Kế thừa phương pháp này nhằm khai thác ý tưởng lai tạo giữa động lực học biểu tượng (LogBERT) và động lực học thời gian (LSTM).  
+* **Limitation:** Mô hình phụ thuộc hoàn toàn vào bộ phân tích cú pháp tĩnh Drain3. Mọi từ vựng mới không có trong cây quyết định của Drain3 đều biến thành lỗi OOV, phá vỡ luồng dữ liệu đi vào mạng LSTM và làm hệ thống mong manh trước môi trường đám mây động2.  
+* **Targeted Improvement:** Loại bỏ module trích xuất tĩnh Drain3, áp dụng Tokenization phụ từ (WordPiece) để truyền tải trực tiếp biểu diễn log thô vào cả nhánh Transformer và nhánh LSTM, duy trì đặc tính không cần parser2.  
+* **Expected Contribution:** Xóa bỏ rào cản OOV, tạo ra một kiến trúc mạng lai bền vững hơn trong việc học động lực học chuỗi thời gian, loại bỏ nhu cầu bảo trì quy tắc trích xuất thủ công3.
+
+Sự kết hợp giữa bằng chứng học thuật và tính khả thi kỹ thuật chỉ ra rằng **Candidate 1 (TAC-LAnoBERT)** sở hữu sức mạnh lý luận áp đảo. Khác với Candidate 3 đòi hỏi duy trì hai mạng nơ-ron song song cồng kềnh, hay Candidate 2 đối mặt với rủi ro hội tụ của thuật toán phân cụm, Candidate 1 cung cấp một giải pháp phẫu thuật kiến trúc tinh tế. Việc can thiệp vào tầng nhúng và tầng phân loại của BERT bảo toàn hoàn toàn chi phí tính toán tuyến tính, đáp ứng độ trễ suy luận công nghiệp. Do đó, toàn bộ cấu trúc đề cương nghiên cứu dưới đây sẽ được xây dựng xoay quanh Candidate 1\.
+
+## **4\. Proposal Structure (Dành cho Ứng viên Nền tảng TAC-LAnoBERT)**
+
+### **4.1. Research Title**
+
+* **English:** TAC-LAnoBERT: Enhancing Parser-Free Log Anomaly Detection with Continuous Temporal Dynamics and Session Memory for Early Warning.  
+* **Vietnamese:** TAC-LAnoBERT: Cải tiến Phương pháp Phát hiện Bất thường Dữ liệu Log Không Cần Phân tích Cú pháp Thông qua Động lực học Thời gian Liên tục và Bộ nhớ Phiên nhằm Cảnh báo Sớm.
+
+Tiêu đề phản ánh chính xác cấu trúc vấn đề: bài toán (Early Warning), bối cảnh phương pháp cơ sở (Parser-Free Log Anomaly Detection), và hai thành phần kiến trúc được cải tiến cốt lõi (Continuous Temporal Dynamics & Session Memory).
+
+### **4.2. Research Positioning**
+
+* **Existing Baseline:** Phương pháp LAnoBERT (Yukyung Lee et al., *Applied Soft Computing*, Q1, 2023\)2.  
+* **Confirmed Limitation:** Mù lòa trước khoảng trống thời gian vật lý (Time-Delta) và mắc hội chứng thiển cận ngữ cảnh do giới hạn cửa sổ trượt (sliding window) 512 tokens. Hậu quả là mô hình hoạt động như một công cụ phản ứng thụ động, sinh ra Tỷ lệ Dương tính Giả (FPR) cao khi tải hệ thống biến động2.  
+* **Targeted Improvement:** Tích hợp trực tiếp vector Nhúng Thời gian (Time-Delta Embedding) vào không gian biểu diễn, kết hợp với việc thiết lập Hàng đợi Bộ nhớ Phiên Liên tục (Continual Session Memory) nhằm đối chiếu quỹ đạo lịch sử2.  
+* **Contribution Level:** Mức độ 2 (Level 2\) — **Targeted Improvement** (Cải tiến Có Mục tiêu). Định vị này xác nhận nghiên cứu không tạo ra một mạng nơ-ron đa năng mới từ đầu, mà hoạt động như một bản mở rộng kiến trúc (architectural extension) cấy ghép vào không gian nhúng của nền tảng BERT.
+
+### **4.3. Research Background**
+
+* **Problem Statement:** Yêu cầu tối thượng của nền công nghiệp AIOps đối với các hệ thống trọng yếu không phải là nhận diện lỗi khi nó đã bùng phát, mà là Phát hiện sớm bất thường (ELAD) trong luồng dữ liệu tốc độ cao. Hệ thống phải dự báo được các lỗi bế tắc tài nguyên tiến triển chậm thông qua các tín hiệu suy thoái mờ nhạt1.  
+* **Motivation & Industrial Context:** Bất chấp điểm số lý thuyết cao, gần một nửa số chuyên gia vận hành từ chối áp dụng các công cụ học sâu hiện tại. Rào cản lớn nhất là hiện tượng "mệt mỏi vì cảnh báo giả" (Alert Fatigue). Các mô hình hiện tại báo động sai mỗi khi hệ thống có tải lượng truy cập cao đột biến hoặc nâng cấp phiên bản định kỳ, đồng thời không cung cấp chuỗi bằng chứng lịch sử dài hạn (long-context traces) để kỹ sư xác minh1.  
+* **Existing Baseline & Baseline Limitation:** LAnoBERT đại diện cho chuẩn mực phân tích log không cần bộ phân tích cú pháp, giải quyết triệt để rủi ro OOV2. Tuy nhiên, LAnoBERT biểu diễn log như những câu văn tự nhiên. Cơ chế vị trí tương đối (Absolute Positional Encoding) vô tình triệt tiêu khoảng cách thời gian vật lý giữa các sự kiện2. Thêm vào đó, việc bị trói buộc trong giới hạn 512 tokens khiến mô hình mù lòa trước các dấu hiệu suy thoái rải rác kéo dài qua nhiều giờ, ép buộc hàm mất mát MLM phải hoạt động như một công cụ đo lường mức độ "bất ngờ" cục bộ thay vì đánh giá rủi ro lũy kế1.  
+* **Rationale for Improvement:** Một hệ thống bị cắt rời về mặt ngữ cảnh và mù lòa về thời gian không thể đảm nhiệm chức năng cảnh báo sớm. Việc bổ sung nhận thức thời gian liên tục và bộ nhớ phiên trực tiếp vào không gian vector của LAnoBERT tạo ra một giải pháp thanh lịch, giữ nguyên ưu điểm biểu diễn ngữ nghĩa mạnh mẽ của Transformers mà không cần phải xây dựng mạng LSTM song song cồng kềnh gây tắc nghẽn luồng xử lý2.
+
+### **4.4. Research Questions**
+
+Các câu hỏi nghiên cứu được thiết kế để định lượng hóa chính xác hiệu quả của các cải tiến kiến trúc:
+
+* **RQ1:** Sự vắng mặt của thông tin thời gian vật lý trong kiến trúc biểu diễn tĩnh của LAnoBERT làm suy giảm Tỷ lệ Dương tính Giả (FPR) đến mức độ nào khi hệ thống đối mặt với tải lượng biến động (flash sales/workload spikes)?  
+* **RQ2:** Việc tiêm mô-đun Nhúng Thời gian Động (Time-Delta Embedding) vào tensor đầu vào có khả năng giảm thiểu FPR và phân biệt giữa biến đổi tải hợp lệ và bế tắc tài nguyên (resource bottlenecks) không?  
+* **RQ3:** Cấu trúc Hàng đợi Bộ nhớ Phiên Liên tục (Continual Session Memory) mở rộng Thời gian dẫn phát hiện (Detection Lead Time \- DLT) lên bao nhiêu giây/phút so với việc đánh giá các cửa sổ log cô lập?  
+* **RQ4:** Liệu việc truy xuất và tính toán khoảng cách Mahalanobis từ hàng đợi vector \[CLS\] trong VRAM có tạo ra độ trễ suy luận (inference latency) vượt quá ngưỡng chấp nhận của công nghiệp AIOps (dưới 10ms) không?
+
+### **4.5. Research Objectives**
+
+**Mục tiêu tổng quát (General):** Đánh giá và cải thiện giới hạn về tính thiển cận ngữ cảnh và mù lòa thời gian của phương pháp cơ sở LAnoBERT (Q1, 2023), nhằm chuyển đổi mô hình từ trạng thái phát hiện phản ứng sang hệ thống cảnh báo sớm chủ động.**Mục tiêu cụ thể (Specific):**
+
+> 1. Tái lập (reproduce) và huấn luyện nguyên bản kiến trúc cùng siêu tham số của LAnoBERT trên các tập dữ liệu chuỗi thời gian liên tục.  
+> 2. Đo lường mức độ suy giảm hiệu năng cơ sở (FPR, DLT) trong điều kiện mô phỏng biến động tải hệ thống.  
+> 3. Triển khai và tích hợp mô-đun Targeted Improvement: Nhúng Thời gian Động (Time2Vec) tại tầng đầu vào.  
+> 4. Triển khai mô-đun Hàng đợi Bộ nhớ Phiên Liên tục tại tầng đầu ra để lưu trữ và truy hồi vector \[CLS\].  
+> 5. Thực hiện thiết kế phân tích cắt bỏ (ablation study) để đối chiếu trực tiếp mô hình Baseline vs Improved Version.  
+> 6. Đánh giá năng lực Early Detection thông qua chuẩn đo lường Thời gian dẫn phát hiện (DLT) và độ ổn định của FPR.  
+> 7. Thực hiện phân tích đánh đổi (trade-off analysis) giữa dung lượng hàng đợi lịch sử và chi phí độ trễ (latency cost).
+
+### **4.6. Research Hypotheses**
+
+Các giả thuyết được thiết lập đảm bảo tính kiểm chứng thực nghiệm nghiêm ngặt:
+
+* **H1:** Việc bổ sung cấu trúc Time-Delta Embedding giúp mô hình thấu hiểu nhịp điệu sinh log, qua đó giảm ít nhất 15% Tỷ lệ Dương tính Giả (FPR) so với LAnoBERT gốc trong các chuỗi sự kiện không chứa lỗi logic nhưng có biến đổi tốc độ sinh3.  
+* **H2:** Việc tính toán khoảng cách ngữ nghĩa giữa cửa sổ log hiện tại và quỹ đạo lịch sử trong Hàng đợi Bộ nhớ giúp gia tăng đáng kể Thời gian dẫn phát hiện (DLT), cho phép hệ thống phát tín hiệu cảnh báo trước khi lỗi FATAL thực sự xuất hiện3.  
+* **H3:** Cải tiến kiến trúc không làm đánh đổi hiệu năng tính toán. Việc duy trì hàng đợi chỉ chứa vector tóm tắt \[CLS\] (768 chiều) đảm bảo chi phí truy xuất bộ nhớ ở độ phức tạp ![][image1], giữ độ trễ suy luận thời gian thực ở mức cho phép3.
+
+### **4.7. Expected Contributions**
+
+* **Scientific Contribution:** Cung cấp bằng chứng thực nghiệm vững chắc bác bỏ giả định phổ biến rằng các Mô hình Ngôn ngữ có thể xử lý dữ liệu hệ thống mà không cần khái niệm về thời gian vật lý. Khẳng định vai trò của động lực học thời gian trong việc kiềm chế hiện tượng dương tính giả2.  
+* **Methodological Contribution:** Đề xuất một cấu trúc mở rộng (enhancement) thanh lịch cho mạng Transformer cơ sở, cho phép mô hình nhìn thấu bối cảnh vượt rào cản 512 tokens mà không phải chịu chi phí tính toán bình phương ![][image2] của cơ chế Global Attention1.  
+* **Engineering Contribution:** Xây dựng một quy trình giao thức đánh giá chuẩn mực cho ELAD, thiết lập yêu cầu bắt buộc về phân tách dữ liệu theo trình tự thời gian (Chronological Split) và hệ thống đo lường DLT nhằm loại trừ triệt để rò rỉ dữ liệu tương lai (data leakage)1.  
+* **Industrial Contribution:** Tạo ra một mô hình cảnh báo sớm với độ trễ thấp (\<10ms), cung cấp thời gian đệm (buffer time) quý giá cho cơ chế tự phục hồi, giải quyết trực tiếp hiện tượng "mệt mỏi vì cảnh báo giả" của giới kỹ sư thực hành1.
+
+## **5\. Proposed Methodology**
+
+Khung phương pháp luận được thiết kế lấy mô hình LAnoBERT làm trung tâm, duy trì kiến trúc lõi để đảm bảo tính kế thừa, đồng thời can thiệp chính xác vào các điểm nghẽn.
+
+### **Baseline (LAnoBERT gốc)**
+
+* **Input:** Dòng sự kiện log thô từ hệ thống.  
+* **Preprocessing:** Tokenization phụ từ bằng thuật toán WordPiece mặc định của BERT, không sử dụng công cụ phân tích cú pháp (parser-free).  
+* **Representation:** Lớp nhúng Token cộng gộp với Absolute Positional Embedding (Mã hóa vị trí tương đối) tĩnh.  
+* **Core Model:** Khối mã hóa BERT Base (12 lớp tự chú ý \- Self Attention).  
+* **Anomaly Detection:** Đánh giá điểm rủi ro cục bộ thông qua hàm suy hao Masked Language Modeling (MLM loss). Xác suất dự đoán (Cross-entropy loss) của từng token bị che khuất được trung bình hóa để tạo điểm số bất thường cho một khối 512 tokens độc lập1.  
+* **Output:** Tín hiệu cảnh báo phản ứng nếu điểm MLM vượt ngưỡng tĩnh.
+
+### **Targeted Improvement (Cải tiến Có Mục tiêu)**
+
+* **Component Bổ sung (Tầng Đầu vào):** Cấy ghép một ma trận Nhúng Thời gian Động (Continuous Temporal Embedding). Thông tin về khoảng cách thời gian vật lý (Time-Delta) giữa các log được biến đổi thành vector tuần hoàn và cộng dồn trực tiếp vào tensor đầu vào3.  
+* **Component Bổ sung (Tầng Đầu ra):** Cấy ghép Hàng đợi Bộ nhớ Phiên Liên tục (Continual Session Memory Queue). Thay vì vứt bỏ thông tin sau khi suy luận, vector trạng thái đại diện \[CLS\] của cửa sổ hiện tại được đẩy vào một hàng đợi không gian vector (buffer) quản lý lịch sử gần nhất3.  
+* **Lý do thay đổi:** Sự can thiệp ở tầng đầu vào giải quyết nguyên nhân gốc rễ của tỷ lệ FPR cao (mù lòa nhịp điệu thời gian). Sự can thiệp ở tầng đầu ra giải quyết sự thiển cận ngữ cảnh, cung cấp dữ liệu đối chiếu quỹ đạo để dự báo lỗi thay vì chờ đợi lỗi xảy ra2.  
+* **Component Giữ nguyên:** Toàn bộ khối mã hóa BERT (Core Model) và quy trình WordPiece Tokenization được giữ nguyên vẹn để bảo toàn năng lực học biểu diễn ngữ nghĩa ngôn ngữ cực mạnh của phương pháp gốc.
+
+### **Improved System (Hệ thống Cải tiến \- TAC-LAnoBERT)**
+
+Mô hình vận hành theo luồng:  
+> **Baseline Input Component → Improved Input Component (Token \+ Positional \+ Time2Vec Embeddings)**  
+> Dữ liệu đi qua bộ mã hóa BERT lõi. Tại đầu ra:  
+> **Baseline Detection (MLM Loss) \+ Newly Added Component (Session Memory Queue) → Hybrid Proactive Risk Score.**  
+> Kiến trúc này không tạo ra một đường ống hoàn toàn mới, mà là một sự mở rộng có tính hệ thống nhằm đánh thức năng lực cảnh báo sớm của nền tảng đã được kiểm chứng.
+
+## **6\. Methodology Components**
+
+Nhằm minh chứng độ chính xác của chiến lược "Targeted Improvement", các thành phần cấu trúc của TAC-LAnoBERT được phân định nguồn gốc rõ ràng:
+
+* **Data:** Tập dữ liệu nhật ký hệ thống liên tục (như BGL, Thunderbird). (**Inherited from Baseline**)  
+* **Preprocessing:** Thuật toán WordPiece Tokenizer để tách từ vựng phụ. Tuyệt đối không sử dụng công cụ Drain hay Spell. (**Inherited from Baseline**)1.  
+* **Representation (Spatial):** Token Embedding kết hợp Absolute Positional Embedding. (**Inherited from Baseline**)  
+* **Representation (Temporal):** Nhúng Thời gian Động (Time-Delta Embedding). Áp dụng phương trình Time2Vec với các hàm sóng hình sin và cosin để biến đổi giá trị vô hướng ![][image3] thành không gian vector đa chiều đại diện cho nhịp điệu chu kỳ hệ thống. (**Newly Added**)3.  
+* **Baseline Model:** Khối kiến trúc Transformer Encoder (BERT). (**Inherited from Baseline**)  
+* **Memory / Context:** Hàng đợi Bộ nhớ Phiên (Queue Buffer) trong VRAM, lưu trữ tập hợp các vector tóm tắt \[CLS\] (768 chiều) của ![][image4] cửa sổ trượt quá khứ. (**Newly Added**)3.  
+* **Detection / Early Detection:** Cơ chế tính điểm rủi ro lai (Hybrid Proactive Scoring). Sự kết hợp giữa hàm suy hao cục bộ MLM (đo lường bất thường từ vựng) và Khoảng cách Mahalanobis so với hàng đợi bộ nhớ lịch sử (đo lường sự trệch hướng quỹ đạo) để phát tín hiệu DLT. (**Modified**)3.
+
+## **7\. Candidate Technique Selection**
+
+Quyết định lựa chọn công nghệ bổ trợ không dựa trên trào lưu (trend) mà được dẫn dắt bởi sự phân tích nguyên nhân gốc rễ (Root Cause Analysis) và ràng buộc về mặt công nghiệp.
+
+* **Memory / Long-context:** Cấu trúc Transformer gặp rào cản tính toán bình phương ![][image2] với chuỗi ngữ cảnh quá dài. Việc lưu trữ toàn bộ tensor ẩn (hidden states) của các cửa sổ quá khứ sẽ gây tràn bộ nhớ VRAM và tăng độ trễ suy luận. Giải pháp Hàng đợi Bộ nhớ Phiên chỉ lưu trữ vector \[CLS\] đại diện cung cấp một chi phí tra cứu cực thấp ở độ phức tạp ![][image1]. Điều này cho phép mạng BERT tiệm cận được khả năng nhận thức ngữ cảnh chuỗi dài (long-context) để phát hiện sự cố lan truyền, trong khi vẫn bảo vệ tốc độ phân tích luồng thời gian thực \<10ms3.  
+* **Các kỹ thuật bị loại trừ (GraphRAG / Knowledge Graph / Agentic AI):** Việc xây dựng một cơ sở dữ liệu vector khổng lồ để Truy hồi Ngữ cảnh (RAG) hoặc duy trì Đồ thị Tri thức cập nhật theo thời gian thực đối mặt với tắc nghẽn I/O hệ thống do đặc thù log là sự kiện biến thiên tốc độ cực cao3. Hơn nữa, các hệ thống AI đa tác nhân (Multi-Agent) phù hợp cho nhiệm vụ điều tra tương tác, chẩn đoán nguyên nhân gốc rễ ngoại tuyến (offline investigation), chứ hoàn toàn không đáp ứng được độ trễ thấp để đảm nhiệm chức năng quét luồng dữ liệu (streaming) trên tiền tuyến cảnh báo3.
+
+## **8\. Dataset Strategy**
+
+Các giả định dùng dữ liệu tĩnh trong nghiên cứu học sâu truyền thống là nguyên nhân chính tạo ra sự ngộ nhận về năng lực của AI trong vận hành.
+
+* **Primary Datasets:** **BGL (Blue Gene/L)** và **Thunderbird**. Cả hai đều là các bộ nhật ký từ hệ thống siêu máy tính ghi lại hoạt động liên tục (chronological logs). Các sự cố nghiêm trọng (FATAL, lỗi bộ nhớ, hỏng switch) thường đi kèm với các mô hình suy thoái mờ nhạt từ hàng giờ trước đó, biến chúng thành chiến trường lý tưởng để đo lường năng lực dự báo sớm1. Các bộ dữ liệu này sở hữu sự mất cân bằng cực đoan (anomalies \< 1%), phản ánh chính xác rủi ro Alert Fatigue trong môi trường sản xuất công nghiệp1.  
+* **Loại trừ HDFS:** Mặc dù LAnoBERT gốc đạt F1-score lên tới 0.99 trên HDFS, bộ dữ liệu này bao gồm các khối sự kiện (blocks) tĩnh, phân mảnh, giới hạn vòng đời giao dịch rất ngắn. Do thiếu vắng tính chuỗi thời gian liên tục dài hạn, HDFS hoàn toàn vô giá trị trong việc kiểm thử tính năng "cảnh báo sớm" và do đó bị loại khỏi vai trò tập dữ liệu chính1.  
+* **Chronological Split Protocol (Chống rò rỉ dữ liệu):** Phân tách tập dữ liệu Huấn luyện (Train) và Kiểm thử (Test) bắt buộc tuân thủ nghiêm ngặt trình tự thời gian vật lý. Phương pháp chia tách ngẫu nhiên (Random K-fold Split) phổ biến tạo ra rò rỉ dữ liệu (Data Leakage) nghiêm trọng — nó cho phép mô hình "nhìn trộm" các biến số của tương lai vào tập huấn luyện ở quá khứ, phá hủy toàn bộ tính hợp lệ khoa học của thí nghiệm cảnh báo sớm1.
+
+## **9\. Baseline and Comparison Strategy**
+
+Phép so sánh bắt buộc xoay quanh một trục cốt lõi nhằm minh bạch hóa đóng góp học thuật của các cải tiến được nhúng vào hệ thống.
+
+* **Primary Comparison:** Bắt buộc đối chiếu trực tiếp giữa **LAnoBERT (Original Baseline)** và **TAC-LAnoBERT (Improved Version)**1. Mọi tham số siêu cấp (hyperparameters) lõi của BERT đều được giữ cố định để đảm bảo sự khác biệt hiệu năng chỉ đến từ mô-đun Thời gian và Bộ nhớ.  
+* **Secondary Comparisons (Contextual Baselines):**  
+  * **DualBERT (IEEE Access, Q2, 2026):** Đại diện cho hướng tiếp cận kết hợp Transformer và mạng hồi quy (LSTM). So sánh để chứng minh việc tiêm Time-Delta Embedding trực tiếp vào biểu diễn NLP mang lại hiệu năng kiểm soát FPR vượt trội, đồng thời chống chịu lỗi OOV tốt hơn kiến trúc phụ thuộc Drain3 của DualBERT2.  
+  * **FALL (IEEE TDSC, Q1, 2025):** Phương pháp cung cấp hệ quy chiếu lý thuyết chuẩn mực về Early Detection. So sánh để đối chiếu năng lực tối đa hóa Detection Lead Time (DLT)2.
+
+## **10\. Evaluation Plan**
+
+Việc đánh giá hệ thống cảnh báo sớm dựa trên F1-score đơn thuần là một sự lừa dối thống kê, không phản ánh được giá trị bảo vệ hệ thống2.
+
+* **Early Detection (Ưu tiên Tuyệt đối):**  
+  * **Detection Lead Time (DLT):** Định nghĩa là khoảng thời gian vật lý tính từ lúc mô hình phát tín hiệu cảnh báo đầu tiên đến khi sự cố sập hệ thống (FATAL) thực sự được ghi nhận. DLT là độ đo sống còn chứng minh hiệu năng đệm thời gian1.  
+  * **Precision/Recall @ Window T:** Đánh giá sự đánh đổi (trade-off) giữa độ chính xác phân loại và cửa sổ dự báo xa/gần. Dự báo càng xa (T càng lớn), rủi ro cảnh báo giả càng cao1.  
+* **Detection Metrics:**  
+  * **False Positive Rate (FPR):** Mức độ cảnh báo sai. Bắt buộc phải duy trì FPR tiệm cận 0 để bảo vệ niềm tin của kỹ sư SRE, ngăn chặn hội chứng "Alert Fatigue"1.  
+  * Các độ đo phân loại nhị phân truyền thống như F1-score, Precision, Recall, và AUROC được báo cáo để xác minh khả năng nhận diện điểm dị thường cơ bản không bị suy giảm.  
+* **Efficiency (Hiệu suất Vận hành):**  
+  * **Latency Cost:** Độ trễ suy luận tăng thêm do việc lấy mẫu và tính toán khoảng cách từ Memory Queue. Mục tiêu kỹ thuật là duy trì tổng thời gian suy luận dưới 10ms cho mỗi cửa sổ sự kiện1.  
+  * **Memory / VRAM Overhead:** Mức độ tiêu thụ phần cứng khi duy trì ![][image4] vector trạng thái trong VRAM.
+
+## **11\. Ablation and Statistical Validation**
+
+Nghiên cứu cắt bỏ (Ablation study) là trái tim của việc chứng minh tính hợp lệ khoa học và bóc tách đóng góp của từng thành phần kỹ thuật1. Cấu trúc kiểm định tối thiểu bao gồm:
+
+* **Baseline:** Mạng LAnoBERT gốc.  
+* **LAnoBERT \+ Time-Delta Embedding:** Vô hiệu hóa Hàng đợi Bộ nhớ. Đo lường tác động cô lập của thông tin nhịp điệu thời gian lên việc kiềm chế FPR trong môi trường có biến động tải lượng lớn (workload spikes)1.  
+* **LAnoBERT \+ Continual Session Memory:** Loại bỏ Nhúng thời gian. Đo lường sự gia tăng trực tiếp của Detection Lead Time (DLT) khi mô hình có khả năng nhìn thấu quỹ đạo suy thoái thông qua đối chiếu vector \[CLS\]1.  
+* **TAC-LAnoBERT (Full model):** Mô hình lai hoàn chỉnh.  
+* **Statistical Analysis:** Tiến hành phân tích độ nhạy (sensitivity test) của siêu tham số ![][image4] (số lượng cửa sổ ngữ cảnh được lưu trữ trong hàng đợi) để đánh giá sự đánh đổi giữa kích thước tầm nhìn lịch sử (mang lại DLT lớn hơn) và chi phí độ trễ suy luận (Latency Cost)1.
+
+## **12\. Foundation Model Evaluation**
+
+*Không áp dụng đánh giá Hallucination (ảo giác), Consistency hay Prompt sensitivity.* TAC-LAnoBERT sử dụng mạng lõi Encoder-only (cấu trúc BERT) cho các phép tính toán khoảng cách không gian vector và hàm mất mát ngôn ngữ che khuất (MLM), hoàn toàn không sử dụng cơ chế Text Generation (sinh văn bản). Việc đánh giá sẽ chỉ tập trung vào **Retrieval Accuracy** của việc đối chiếu trạng thái từ hàng đợi bộ nhớ và tính toán độ tiêu hao tài nguyên (compute overhead).
+
+## **13\. Threats to Validity**
+
+Bất kỳ một dự án AIOps thực chứng nào cũng đối mặt với những mối đe dọa làm suy yếu tính hợp lệ của kết quả nghiên cứu. Việc nhận diện và áp dụng chiến lược giảm thiểu là quy trình bắt buộc2.
+
+* **Internal Threats (Rò rỉ dữ liệu \- Data Leakage):** Đây là đe dọa chí mạng nhất. Nếu áp dụng việc chia tách ngẫu nhiên dữ liệu, thông tin về trạng thái tương lai của hệ thống sẽ rò rỉ vào tập huấn luyện ở quá khứ. Khắc phục bắt buộc thông qua giao thức **Chronological Split**1. Bên cạnh đó, việc tiêm nhúng thời gian có nguy cơ làm nhiễu không gian biểu diễn ngữ nghĩa của token ngôn ngữ; cần áp dụng cơ chế chiếu song song (parallel projection) để bảo toàn luồng thông tin.  
+* **External Threats (Trôi dạt khái niệm \- Concept Drift):** Môi trường đám mây liên tục cập nhật CI/CD, làm thay đổi hoặc sinh ra từ vựng log mới khoảng 20-45% mỗi năm (Stale Knowledge). Tuy nhiên, kiến trúc không cần bộ phân tích cú pháp (parser-free) của LAnoBERT giúp chống lại rủi ro OOV này một cách tự nhiên2.  
+* **Construct Threats (Ngộ nhận Bất thường Cục bộ):** Giả định sai lầm rằng một sự kiện bất thường cục bộ (Point Anomaly) ngay lập tức đồng nghĩa với sự cố sập hệ thống (Failure). Sự cố thực tế cần sự tích tụ của chuỗi dị thường (Collective Anomaly). Việc đưa hệ quy chiếu DLT vào đánh giá thay vì F1-score ngăn chặn trực tiếp ảo tưởng phân tích này2.  
+* **Conclusion Threats (Độ nhạy của ngưỡng \- Threshold Sensitivity):** Rủi ro hệ thống bị thao túng bởi một ngưỡng gán nhãn tĩnh được cấu hình thủ công. Áp dụng thuật toán Extreme Value Theory (EVT) để tự động hóa việc tính toán ngưỡng động3.
+
+## **14\. Feasibility Analysis**
+
+Mức độ khả thi của đề xuất được chấm trên thang điểm 1-10 để đảm bảo phù hợp tuyệt đối với khối lượng công việc và nguồn lực của một luận văn Thạc sĩ (6-9 tháng)3.
+
+| Proposal | Baseline Reproducibility | Improvement Complexity | Compute | Data | Experiment Complexity | Risk | Thesis Suitability |
 | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
-| Cải tiến 1: Nâng cấp Cơ chế Cập nhật Bộ nhớ CTDG bằng Gating Động | TempoLog (2025)2 | Hàm gộp tuyến tính tĩnh (Static Linear Aggregation) gây xung đột đặc trưng liên miền, không thể thích ứng với hệ thống mới1. | Bảng Ablation cho thấy F1 sụt 75% trên tập Spirit và 26% trên BGL khi thiếu đặc trưng ngữ nghĩa (C1)2. | Thay thế hàm gộp tĩnh bằng Mạng Cổng Định tuyến Động (Dynamic Feature Gating) dựa trên Hỗn hợp Chuyên gia (MoE)2. | Giải quyết hoàn toàn xung đột miền, duy trì sự ổn định trên cả hệ thống mạng và hệ thống tính toán, bảo toàn độ trễ luồng2. | Rất Cao (Chỉ can thiệp cục bộ vào mô-đun Message Aggregator) | Thấp (Mạng Gating cần tối ưu siêu mỏng để tránh overhead tính toán) |
-| Cải tiến 2: Tinh chỉnh Cơ chế Định tuyến cấp độ Thông điệp không cần LLM | FAME (2026)3 | Phụ thuộc quá lớn vào chất lượng phân vùng từ LLM khởi tạo ngoại tuyến (K-shot prompting)2. | Router mất phương hướng, phân loại sai khi miền dữ liệu thay đổi quá nhanh so với tập mồi ban đầu1. | Thay thế bước mồi LLM bằng thuật toán phân cụm đồ thị động trực tiếp trên luồng thông điệp. | Giảm chi phí API LLM, tăng khả năng thích ứng luồng liên tục không cần con người can thiệp1. | Trung bình (Yêu cầu tái cấu trúc toàn bộ quy trình huấn luyện mồi) | Cao (Thuật toán phân cụm luồng có thể không hội tụ kịp thời với tốc độ sinh log) |
-| Cải tiến 3: Tối ưu hóa Tổng hợp Đặc trưng trong Hệ thống MoE Đa miền | LogMoE (2025)1 | Mạng cổng ngữ nghĩa (Semantic Gating Network) chỉ hoạt động trên chuỗi phẳng, bỏ qua động lực học thời gian2. | Các chuyên gia mạng nơ-ron hẹp thất bại khi khoảng cách phân phối (distribution gap) của miền mới quá lớn2. | Tiêm cấu trúc tuần tự thời gian của CTDG vào các chuyên gia trong hệ thống MoE. | Nâng cấp khả năng phát hiện đa hệ thống (cross-system detection) lên một chuẩn mực cấu trúc thời gian mới1. | Khá (Kiến trúc MoE đã có sẵn, chỉ cần thay đổi đầu vào biểu diễn) | Trung bình (Sự phức tạp hóa mô hình có thể làm giảm ưu thế lightweight của LogMoE) |
-| Cải tiến 4: Tinh gọn Cấu trúc Phân cấp (Hierarchical Abstraction) | Krone (2026)3 | Tiền xử lý cấu trúc cây (Entity-Action-Status) bằng LLM quá cồng kềnh cho luồng dữ liệu biến đổi nhanh1. | Quá trình phân tích template thất bại thường xuyên gây sập cấu trúc cây phân cấp (Template collision)2. | Đơn giản hóa cây phân cấp, sử dụng đồ thị cục bộ thuật toán thay cho LLM extractor. | Giảm chi phí và thời gian khởi tạo cây cấu trúc đồ sộ. | Thấp (Kiến trúc gốc đã bão hòa tính phức tạp về hierarchical abstraction) | Cực Cao (Không phù hợp với môi trường log sinh tạo tiến hóa hàng ngày) |
-| Cải tiến 5: Tách biệt Hoàn toàn Đặc trưng Động lực học | FuseLog (2026) | Kiến trúc ghép nối (concatenation) làm tăng độ trễ xử lý đa mô hình (BiLSTM và XGBoost)2. | Luồng xử lý phân tách gây nút thắt I/O và suy luận đa tầng khiến độ trễ tăng vọt2. | Chuyển đổi thành kiến trúc end-to-end xử lý chuỗi động một pha duy nhất. | Tối ưu hóa thông lượng xử lý (throughput) của hệ thống đa biến. | Khá (Việc huấn luyện dễ dàng trên dữ liệu chuỗi có sẵn) | Trung bình (Bản chất vẫn là mô hình dựa trên chuỗi nên không triệt tiêu được context bias) |
+| **TAC-LAnoBERT** | 9 | 7 | 8 | 9 | 8 | 3 | 9 |
 
-Quá trình sàng lọc loại bỏ các Cơ hội 4 và 5 do chúng vướng phải các giới hạn về độ trễ vật lý và không khắc phục được điểm yếu bản chất của thiết kế cửa sổ trượt hoặc cấu trúc tĩnh. Ba cơ hội đầu tiên, xoay quanh các khái niệm Đồ thị Động luồng sự kiện (CTDG) và Định tuyến Chuyên gia (MoE), được lựa chọn để phát triển thành ba ứng viên đề cương hoàn chỉnh.
+* **Baseline Reproducibility (9):** Rất cao. Mã nguồn gốc của LAnoBERT được công khai toàn bộ (mã nguồn, cấu hình, checkpoint) trên HuggingFace và GitHub (yukyung/LAnoBERT). Là một mô hình parser-free, nó tiết kiệm toàn bộ thời gian cấu hình luật biểu thức tĩnh và cài đặt công cụ phân tích ngoại lai2.  
+* **Compute (8):** Khả thi cao. Khác với việc huấn luyện các mô hình tạo sinh khổng lồ, mạng BERT-base chỉ chứa khoảng 110 triệu tham số. Việc tinh chỉnh (fine-tuning) và nhúng mô-đun thời gian có thể vận hành mượt mà trên phần cứng GPU tiêu dùng cấp cao (như RTX 3090/4090) mà không cần cụm máy chủ công nghiệp3.  
+* **Data (9):** Các tập BGL và Thunderbird có tính khả dụng cao, đã được cộng đồng chuẩn hóa nhãn sự cố theo chuỗi thời gian liên tục.
 
-## **2\. Top 3 Proposal Candidates**
+## **15\. Research Scope Control**
 
-Ba ứng viên đề cương được lựa chọn bám sát nguyên tắc cốt lõi: kế thừa một phương pháp cơ sở 2025–2026 minh bạch, xác định một giới hạn cấu trúc có bằng chứng thực nghiệm rõ ràng, và triển khai một cải tiến nhắm mục tiêu (targeted improvement) khả thi.
+Dự án duy trì nguyên tắc kiểm soát phạm vi cực kỳ nghiêm ngặt: **Một Phương Pháp Cơ Sở Vững Chắc (LAnoBERT, 2023\) \+ Một Điểm Nghẽn Trí Tử (Mù lòa thời gian & Thiển cận ngữ cảnh) \+ Một Hướng Cải Tiến Có Mục Tiêu (Time-Delta Embedding & Session Memory Queue) \+ Phương Pháp Đánh Giá Mới (Chronological DLT).** Báo cáo tuyệt đối không nhồi nhét các trào lưu công nghệ như GraphRAG, Multi-Agent hay truy xuất LLM khổng lồ. Phân tích nguyên nhân gốc rễ (Root Cause Analysis) chỉ ra rõ ràng rằng tốc độ của luồng dữ liệu thời gian thực yêu cầu các giải pháp có độ phức tạp tuyến tính ![][image1]3. Việc mở rộng phạm vi ra ngoài các kiến trúc nhẹ sẽ phá hủy tính khả thi công nghiệp của nghiên cứu.
 
-### **Ứng viên 1: MoE-Augmented CTDG (Mạng Đồ thị Động Định tuyến Chuyên gia)**
+## **15A. Final Baseline Eligibility Check**
 
-* **Baseline:** TempoLog (2025), một khung xử lý luồng sự kiện đa tỷ lệ không sử dụng cửa sổ (window-free) tốt nhất hiện nay cho Early Detection1.  
-* **Limitation:** Mô-đun Cập nhật Bộ nhớ (Memory Update) gộp 4 đặc trưng cạnh (Ngữ nghĩa C1, Tần suất C2, Khoảng thời gian C3, Mức độ C4) qua một hàm tuyến tính tĩnh (Static Linear Fusion)1. Sự cứng nhắc toán học này ép buộc mô hình gán một tỷ trọng bất biến cho các đặc trưng bất kể bản chất vật lý của hệ thống giám sát.  
-* **Evidence:** Các nghiên cứu cắt bỏ (ablation studies) xác nhận đặc trưng C1 mang tính chi phối trên tập dữ liệu siêu máy tính BGL, nhưng lại gây nhiễu và làm sụt giảm 75% F1-score trên tập dữ liệu bộ định tuyến mạng Spirit2.  
-* **Targeted Improvement:** Cải tiến nhắm mục tiêu bằng cách thay thế khối Aggregator tĩnh bằng một Mạng Cổng Định tuyến Động (Dynamic Feature Gating) lấy cảm hứng từ lý thuyết Hỗn hợp Chuyên gia (MoE). Đặc trưng được phân ly thành *Semantic Expert* và *Temporal Expert*, trong khi mạng MLP siêu mỏng tự động tính toán trọng số ![][image1] và ![][image2] ngay tại mốc thời gian ![][image3]2.  
-* **Expected Contribution:** Khắc phục triệt để Domain Conflict, giúp CTDG tự động thích ứng với các luồng dữ liệu dị thể liên hệ thống mà không cần tinh chỉnh thủ công, đồng thời bảo toàn độ trễ vi giây (microsecond latency) thiết yếu cho công tác Phát hiện Sớm1.
+Trước khi xếp hạng, phương pháp cơ sở của ứng viên cốt lõi (LAnoBERT) được thẩm định qua lăng kính tính hợp lệ nghiêm ngặt:
 
-### **Ứng viên 2: Streaming Clustering-based FAME (Định tuyến Cấp độ Thông điệp không LLM)**
+* \[x\] Năm công bố 2023–2026: **2023**.  
+* \[x\] Journal article chính thức: **Đã công bố, có định danh DOI (10.1016/j.asoc.2023.110689)**2.  
+* \[x\] Đã peer-review: **Có**.  
+* \[x\] Journal Q1 hoặc Q2: **Q1 (Applied Soft Computing)**2.  
+* \[x\] Có nguồn xác minh quartile: **Xác nhận qua SCImago Q1 và JCR Q1**2.  
+* \[x\] Liên quan trực tiếp đến Early Log Anomaly Detection: **Phát hiện bất thường dữ liệu log (Log Intelligence / AIOps)**.  
+* \[x\] Limitation đã được xác nhận: **Hạn chế về sự vắng mặt động lực học thời gian và ngữ cảnh chuỗi dài được chứng minh bởi các nghiên cứu đối trọng (DualBERT và FALL)**2.  
+* \[x\] Improvement có thể kiểm chứng thực nghiệm: **Thiết kế phân tích cắt bỏ (Ablation) và cấu trúc đánh giá DLT hoàn toàn minh bạch**.
 
-* **Baseline:** FAME (2026), một kiến trúc Hỗn hợp Chuyên gia xử lý thông điệp nhằm giảm gánh nặng gán nhãn thủ công3.  
-* **Limitation:** Kiến trúc bị trói buộc vào một giai đoạn khởi tạo ngoại tuyến (offline), trong đó nó sử dụng K-shot prompting từ một LLM đồ sộ để phân vùng dữ liệu và huấn luyện bộ định tuyến (router)2.  
-* **Evidence:** Báo cáo hệ thống chỉ ra rằng khi định dạng log tiến hóa nhanh chóng sinh ra các từ vựng mới (OOV), tập mồi K-shot trở nên lỗi thời, khiến router phân loại sai luồng và đẩy log vào sai domain expert, làm giảm độ tin cậy của toàn hệ thống1.  
-* **Targeted Improvement:** Thay thế bước mồi phụ thuộc LLM bằng một thuật toán phân cụm luồng trực tuyến (online stream clustering) nhẹ nhàng để tự động hóa việc cập nhật ranh giới của mạng định tuyến mà không cần nhãn mồi.  
-* **Expected Contribution:** Loại bỏ hoàn toàn sự phụ thuộc vào API LLM đắt đỏ và có độ trễ cao, gia tăng tính tự chủ và khả năng cập nhật liên tục của quy trình MLOps tại biên (edge computation)1.
+## **16\. Final Ranking**
 
-### **Ứng viên 3: Graph-Injected LogMoE (Hệ thống Hỗn hợp Chuyên gia Tăng cường Cấu trúc)**
+Bảng xếp hạng tổng thể các cơ hội cải tiến đối với họ phương pháp phân tích Log Anomaly được xây dựng dựa trên việc tính toán các trọng số tác động đa chiều3:
 
-* **Baseline:** LogMoE (2025), một khung định tuyến chuyên gia ưu việt giải quyết bài toán đa hệ thống (cross-system detection) không cần bộ phân tích cú pháp1.  
-* **Limitation:** Mạng cổng ngữ nghĩa (Semantic Gating Network) nguyên bản xử lý các dòng log như những chuỗi phẳng rời rạc, hoàn toàn bỏ qua động lực học thời gian và chuỗi nhân quả lồng nhau của các tiến trình phân tán2.  
-* **Evidence:** Các phép thử thực nghiệm chứng minh rằng các chuyên gia mạng nơ-ron hẹp bên trong LogMoE thất bại hoàn toàn khi hệ thống đích xuất hiện các mẫu log có khoảng cách phân phối (distribution gap) quá lớn so với hệ thống nguồn2.  
-* **Targeted Improvement:** Tiêm cấu trúc luồng tuần tự của CTDG (như khoảng thời gian trễ và cạnh đồng xuất hiện) vào các không gian biểu diễn (representation space) của từng chuyên gia.  
-* **Expected Contribution:** Tạo ra một mô hình lai ghép có năng lực tổng quát hóa mạnh mẽ nhất, kết hợp giữa khả năng thích ứng miền của MoE và sự thấu hiểu chuỗi nhân quả của Mạng Đồ thị Động1.
-
-## **3\. Research Positioning of Each Candidate**
-
-Định vị nghiên cứu là kim chỉ nam để bảo vệ giá trị học thuật của luận văn trước hội đồng đánh giá. Cả ba ứng viên đều tuân thủ chặt chẽ khuôn khổ **Targeted Improvement (Nâng cấp Nhắm mục tiêu)**, từ chối việc đập đi xây lại các khung kiến trúc hoàn toàn mới (Entirely new architecture) vốn dễ rơi vào bẫy "tạo tính mới chỉ để lấy tính mới" (novelty for novelty's sake) và rất khó kiểm chứng liêm chính1.
-
-> 1. **Định vị Ứng viên 1 (TempoLog-MoE):** Được định vị là một *Architectural Extension (Mở rộng Kiến trúc)*. Đóng góp khoa học cốt lõi nằm ở việc chứng minh bằng toán học và thực nghiệm rằng hàm gộp tĩnh là tác nhân phá vỡ sự ổn định của CTDG trên dữ liệu mạng, và cơ chế gating động của MoE là phương thức thanh lịch nhất để khắc phục điểm yếu này mà không làm biến dạng thông lượng xử lý luồng2.  
-> 2. **Định vị Ứng viên 2 (FAME-Clustering):** Được định vị là một *Algorithmic Replacement (Thay thế Thuật toán)*. Đóng góp nằm ở khía cạnh Kỹ thuật Phần mềm (Engineering/MLOps), chứng minh rằng các luồng thuật toán truyền thống (stream clustering) có thể cung cấp độ chính xác phân vùng tương đương LLM K-shot nhưng với chi phí duy trì chỉ bằng một phần nhỏ2.  
-> 3. **Định vị Ứng viên 3 (LogMoE-Graph):** Được định vị là một *Representation Enhancement (Nâng cao Biểu diễn)*. Đóng góp khoa học tập trung vào việc định hình lại không gian đặc trưng đầu vào của một bộ định tuyến đã có sẵn, minh chứng sức mạnh của cấu trúc đồ thị không cửa sổ trong việc tăng cường độ nhạy của các chuyên gia cục bộ1.
-
-## **4\. Three Complete Thesis Proposals**
-
-Phần này cung cấp chi tiết ba đề cương nghiên cứu tương ứng với ba ứng viên, bao gồm bối cảnh, câu hỏi nghiên cứu, giả thuyết và phương pháp luận cốt lõi, đảm bảo mỗi đề cương đều là một thực thể học thuật hoàn chỉnh sẵn sàng để triển khai trong giới hạn 6–9 tháng.
-
-### **4.1 Proposal 1: Nâng cao Năng lực Phát hiện Sớm Bất thường trên Log qua Mạng Đồ thị Động Tăng cường MoE (MoE-Augmented CTDG) \- *Ưu tiên Khuyến nghị***
-
-**Research Title:** *Enhancing Early Log Anomaly Detection via MoE-Augmented Continuous-Time Dynamic Graphs: A Dynamic Feature Gating Approach.* **Research Background:** Phân tích log luồng đối mặt với nghịch lý giữa tốc độ cảnh báo và độ chính xác phân tích nguyên nhân. Khung TempoLog (2025) loại bỏ các cửa sổ trượt để đánh giá bất thường tại mốc sự kiện đơn lẻ thông qua CTDG, tối ưu hóa triệt để Thời gian Phát hiện Trung bình (MTTD)1. Tuy nhiên, trong sản xuất thực tế, các biến số đặc trưng luôn thay đổi vai trò; ví dụ, hệ thống định tuyến (router-bound) nhạy cảm tuyệt đối với khoảng thời gian trễ, trong khi siêu máy tính (compute-bound) nhạy cảm với sai lệch ngữ nghĩa. TempoLog sử dụng một hàm gộp tuyến tính tĩnh ![][image4], ép buộc mô hình gán một bộ trọng số bất biến1. Bằng chứng cắt bỏ phơi bày sự sụp đổ hiệu năng (giảm 75% F1 trên Spirit) khi đối mặt với Domain Conflict3. **Research Questions (RQ):**
-
-* RQ1: Điểm nghẽn của hàm gộp tuyến tính tĩnh trong mạng CTDG tác động nghiêm trọng đến đâu đối với tỷ lệ báo động giả (False Alarm Rate) trên các tập dữ liệu đa miền khi áp dụng Temporal Split?  
-* RQ2: Cơ chế Cổng Định tuyến Động (Dynamic Feature Gating) dựa trên MoE có khôi phục và duy trì tính ổn định của F1-score khi chuyển đổi giữa hệ thống thiên về ngữ nghĩa (BGL) và thiên về thời gian (Spirit) không?  
-* RQ3: Độ trễ tính toán (latency overhead) từ Mạng Gating siêu mỏng có vượt qua ranh giới chấp nhận của một hệ thống thời gian thực so với phép nhân ma trận tĩnh không?**Research Objectives:**  
-* (O1) Tái tạo TempoLog trên HDFS, BGL, Spirit với kỹ thuật Chronological/Temporal Split3.  
-* (O2) Triển khai kiến trúc nâng cấp: Tách luồng 4 đặc trưng thành *Semantic Expert* và *Temporal Expert*.  
-* (O3) Xây dựng Gating Network tính toán hai tham số ![][image5] để cập nhật bộ nhớ có trọng số.  
-* (O4) Đánh giá đối sánh F1, ROC-AUC, MTTD và Detection Lead Time3. **Research Hypotheses:**  
-* H1: Kiến trúc TempoLog-MoE cải thiện ít nhất 10% F1-score trên tập Spirit so với baseline tĩnh bằng cách khử nhiễu ngữ nghĩa2.  
-* H2: Trọng số định tuyến ![][image2] (Temporal) sẽ tự động chiếm ưu thế trong các kỷ nguyên thời gian của luồng sự kiện mạng lưới2.  
-* H3: Mạng Gating không làm tăng MTTD vượt quá ngưỡng 5% so với kiến trúc nguyên bản2. **Proposed Methodology:** Đề xuất bảo lưu quá trình tiền xử lý bằng Drain Parser và khởi tạo vector nút bằng Sentence-BERT1. Bước Đồ thị Động đa tỷ lệ được giữ nguyên. Can thiệp nhắm mục tiêu diễn ra tại mô-đun Message Aggregator. Đặc trưng được phân ly: Chuyên gia Ngữ nghĩa (![][image6]) và Chuyên gia Thời gian (![][image7]). Một mạng Multi-Layer Perceptron (MLP) siêu mỏng nhận đầu vào là trạng thái hiện tại của nút ![][image8] và bối cảnh láng giềng để tự động xuất ra ![][image5] (với ![][image9]) ngay tại mốc ![][image3]2. Vector bộ nhớ được cập nhật qua công thức ![][image10], trước khi đưa qua mạng MLP dự đoán liên kết để phát tín hiệu bằng Binary Cross-Entropy (BCE) Loss1.
-
-### **4.2 Proposal 2: Định tuyến Cấp độ Thông điệp Tự chủ (LLM-Free Streaming Router)**
-
-**Research Title:** *Autonomous Message-Level Log Routing: Replacing Offline LLM Priming with Dynamic Stream Clustering in FAME.* **Research Background:** Kiến trúc Hỗn hợp Chuyên gia FAME (2026) xử lý dữ liệu ở cấp độ thông điệp, giảm đáng kể chi phí gán nhãn thủ công thông qua một mạng định tuyến chuyên gia3. Điểm nghẽn là mạng định tuyến này đòi hỏi một tập mồi (K-shot) sinh ra từ LLM ngoại tuyến để xác định các miền lỗi (failure domains)2. Trong các kiến trúc CI/CD, mã nguồn thay đổi hàng ngày sinh ra các log OOV (Out-Of-Vocabulary), khiến tập mồi bị lỗi thời (stale knowledge). Sự phụ thuộc này làm tăng chi phí API và giảm khả năng thích ứng liên tục của hệ thống1. **Research Questions (RQ):**
-
-* RQ1: Thuật toán phân cụm luồng trực tuyến (online stream clustering) có thể đạt được độ sắc nét phân chia miền tương đương với LLM K-shot trong cấu trúc FAME không?  
-* RQ2: Việc loại bỏ LLM khởi tạo giúp hệ thống tiết kiệm bao nhiêu chi phí điện toán đám mây và giảm bao nhiêu thời gian tái huấn luyện mạng định tuyến khi gặp Concept Drift?**Research Objectives:**  
-* (O1) Tái tạo cấu trúc router offline của FAME trên tập BGL và đo lường độ chính xác phân vùng.  
-* (O2) Thiết kế thuật toán phân cụm luồng nhẹ (như Micro-clustering) chạy song song để liên tục cập nhật ranh giới phân vùng mà không cần nhãn.  
-* (O3) Đánh giá tỷ lệ phân loại nhầm của router tự chủ so với router LLM khi chèn nhân tạo các log mẫu OOV.**Research Hypotheses:**  
-* H1: Bộ định tuyến tự chủ dựa trên luồng cụm sẽ duy trì F1-score của FAME trong khoảng dao động 2% so với bản gốc, đồng thời giảm 100% chi phí API LLM2.  
-* H2: Hệ thống có khả năng phục hồi hiệu năng nhanh gấp 3 lần bản gốc khi gặp các đợt phát hành phần mềm lớn (major software releases) gây nhiễu log định dạng. **Proposed Methodology:** Mô hình giữ nguyên thiết kế các chuyên gia nơ-ron nhẹ (lightweight experts) làm việc tại biên của FAME3. Thay vì gửi các mẫu log lên OpenAI/LLaMA để xin nhãn mồi, đề xuất xây dựng một bộ đệm phân cụm động (dynamic clustering buffer) đánh giá khoảng cách cosine giữa các luồng SBERT embeddings. Khi một cụm mới hình thành và vượt ngưỡng mật độ, mạng định tuyến sẽ tự động gán một chỉ mục chuyên gia mới hoặc điều chỉnh biên giới của các chuyên gia cũ. Hệ thống được đánh giá theo kỹ thuật Temporal Split để minh chứng tính cập nhật liên tục3.
-
-### **4.3 Proposal 3: Hệ thống Hỗn hợp Chuyên gia Tăng cường Cấu trúc Thời gian (Structurally Enhanced LogMoE)**
-
-**Research Title:** *Temporal Structure Injection for Cross-System Anomaly Detection in Mixture-of-Experts Frameworks.* **Research Background:** Hệ thống LogMoE (2025) cung cấp một giải pháp cực kỳ gọn nhẹ cho bài toán phát hiện đa hệ thống (cross-system) bằng cách sử dụng cổng ngữ nghĩa (Semantic Gating) để phân phối log cho các chuyên gia mà không cần sử dụng bộ parser dễ sai sót1. Tuy nhiên, vì LogMoE tiếp nhận các dòng log như những chuỗi văn bản rời rạc, các chuyên gia cục bộ hoàn toàn mù lòa về tính chất nhân quả lồng nhau (temporal causal structure) của hệ thống2. Điều này khiến LogMoE thất bại trước các tấn công có tính thời gian chậm chạp hoặc sự cố rò rỉ tài nguyên, đặc biệt khi khoảng cách phân phối giữa hệ thống nguồn và đích quá lớn2. **Research Questions (RQ):**
-
-* RQ1: Việc tiêm các ma trận đặc trưng đồ thị luồng (khoảng thời gian trễ, cạnh đồng xuất hiện) vào không gian biểu diễn của LogMoE có cải thiện khả năng chẩn đoán các lỗi kéo dài không?  
-* RQ2: Cấu trúc MoE lai ghép này có vượt trội hơn các mô hình LSTM truyền thống trên tiêu chí Phát hiện Sớm (MTTD) khi kiểm thử chéo từ HDFS sang Spirit không?**Research Objectives:**  
-* (O1) Tái tạo LogMoE và kiểm chứng sự sụp đổ F1 khi đánh giá chéo trên các miền dữ liệu xa lạ2.  
-* (O2) Xây dựng một mô-đun chiết xuất đặc trưng thời gian (Temporal Feature Extractor) dạng cửa sổ trượt ngắn hạn, tiêm vào bộ biểu diễn ngữ nghĩa của từng chuyên gia nơ-ron.  
-* (O3) Đánh giá đối sánh F1-score và MTTD trên kịch bản chuyển giao zero-shot cross-system.**Research Hypotheses:**  
-* H1: Việc tăng cường cấu trúc sẽ giúp LogMoE tăng F1-score ít nhất 8% trên các kịch bản chuyển giao đa hệ thống xa lạ (ví dụ HDFS sang Spirit)1.  
-* H2: Sự phức tạp hóa cấu trúc đầu vào sẽ không làm tăng độ trễ suy luận vượt ngưỡng 15 mili-giây trên mỗi log thông điệp. **Proposed Methodology:** Mô hình bảo tồn toàn bộ cấu trúc Mạng cổng Ngữ nghĩa (Semantic Gating) xuất sắc của LogMoE1. Sự can thiệp diễn ra ở không gian đầu vào (Input Space) của các chuyên gia. Trước khi đưa vào chuyên gia, mỗi dòng log thô không chỉ được biểu diễn bằng vector ngôn ngữ (Sentence-BERT), mà còn được nối ghép (concatenated) với một vector thời gian (Temporal Vector) mã hóa khoảng cách thời gian ![][image11] kể từ 5 sự kiện gần nhất thuộc cùng một định danh tiến trình (Process ID). Mô hình được huấn luyện end-to-end trên tập dữ liệu nguồn và đánh giá nghiêm ngặt năng lực tổng quát hóa trên tập dữ liệu đích2.
-
-## **5\. Feasibility Analysis**
-
-Phân tích tính khả thi là lưới lọc cuối cùng để đảm bảo rủi ro thất bại của luận văn Thạc sĩ ở mức tối thiểu. Đánh giá được chấm điểm (1-10) dựa trên năng lực tính toán hiện có và độ khó của lý thuyết.
-
-| Đề cương Đề xuất | Baseline Reproducibility | Improvement Complexity | Compute & Data | Experiment Complexity | Risk Level | Thesis Suitability | Overall Feasibility |
-| :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
-| **P1: TempoLog-MoE** | 9/10 (CTDG tường minh, SBERT phổ thông)2 | 4/10 (Tùy chỉnh MLP định tuyến mạng tuyến tính cơ bản)2 | 9/10 (Nhân ma trận tĩnh chạy trên vGPU tiêu chuẩn, dữ liệu LogHub mở)2 | 6/10 (Lập trình đo lường MTTD và Temporal Split chính xác)3 | 3/10 (Rủi ro rất thấp nhờ có Ablation Data ủng hộ)3 | 10/10 (Mở rộng Level 2 sắc bén, rõ ràng)2 | **Rất Cao** |
-| **P2: FAME-Clustering** | 5/10 (Đòi hỏi API LLM K-shot để tái tạo ban đầu)3 | 7/10 (Thuật toán Stream Clustering rất khó để tinh chỉnh hội tụ)2 | 6/10 (Chi phí API GPT-4/LLaMA tốn kém) | 7/10 (Phải đánh giá chất lượng phân vùng OOV) | 7/10 (Clustering có thể không bắt kịp Concept Drift) | 7/10 (Thiên nhiều về Kỹ thuật MLOps hơn Khoa học Dữ liệu) | **Trung bình** |
-| **P3: LogMoE-Graph** | 8/10 (Mã nguồn Semantic Gating có sẵn)1 | 6/10 (Khó khăn trong việc tiêm tensor thời gian vào mô hình tĩnh)2 | 8/10 (Huấn luyện chéo trên GPU phổ thông) | 6/10 (Đòi hỏi chia tách dữ liệu liên hệ thống phức tạp) | 6/10 (Vector ghép nối có thể gây loãng không gian biểu diễn) | 8/10 (Học thuật cao nhưng dễ lạc đề sang Transfer Learning) | **Khá** |
-
-Dựa trên ma trận phân tích, Đề cương 1 (P1: TempoLog-MoE) sở hữu tính khả thi vượt trội. Việc chỉ can thiệp vào mô-đun Message Aggregator bằng các phép tính đạo hàm cơ bản trên PyTorch, không lệ thuộc vào các LLM khổng lồ hay API trả phí, biến đây thành lựa chọn an toàn và sắc bén nhất cho thời hạn 6–9 tháng2.
-
-## **6\. Experimental Evaluation Strategy**
-
-Chiến lược thực nghiệm được thiết kế nhằm phá vỡ các ảo tưởng hiệu năng (performance illusions) thường thấy trong tài liệu học thuật, thiết lập một chuẩn mực đánh giá khắt khe nhất.
-
-### **6.1 Chiến lược Dữ liệu và Chia tách (Dataset & Splitting Protocol)**
-
-Sự liêm chính của thực nghiệm phụ thuộc hoàn toàn vào cách tổ chức dữ liệu. Phương pháp chia tách xáo trộn ngẫu nhiên (Random Split) bị nghiêm cấm vì nó sinh ra Rò rỉ Dữ liệu (Data Leakage). Trong hệ thống phân tán, các sự kiện bất thường thường phát sinh thành các cụm bùng nổ có tương quan thời gian chặt chẽ (correlated bursty events). Xáo trộn ngẫu nhiên sẽ mang các thông điệp của tương lai rải ngược về tập huấn luyện, cung cấp cho mô hình "nhãn giả" về quy luật của một sự cố chưa từng xảy ra. Báo cáo năm 2026 xác nhận Macro-F1 của các mô hình SOTA sụp đổ thảm hại từ 0.82 xuống 0.02 khi mang ra thực tế chỉ vì lỗi chia tách này2.
-
-* **Temporal Split (Phân chia theo dòng thời gian Bắt buộc):** Dữ liệu được sắp xếp tuyệt đối theo nhãn thời gian thực (timestamp). 60% dữ liệu xuất hiện sớm nhất dùng để Huấn luyện (Training), và 40% xuất hiện sau dùng để Kiểm thử (Testing)3. Điều này ép buộc mô hình phải vận hành theo đúng kịch bản sản xuất: Học từ quá khứ để dự báo tương lai.  
-* **Tập dữ liệu Khảo sát (Datasets):**  
-  * *Primary 1 \- BGL (BlueGene/L):* Hệ thống siêu máy tính (Compute-bound). Tính phân tán lỗi cao, đặc trưng Ngữ nghĩa (C1) đóng vai trò quyết định1.  
-  * *Primary 2 \- Spirit:* Hệ thống bộ định tuyến (Network-bound). Biến động thời gian trễ khốc liệt, đặc trưng Thời gian (C3) chiếm thế độc tôn. Đây là đấu trường cốt lõi để minh chứng năng lực của Gating Network1.  
-  * *Sanity Check \- HDFS:* Lỗi hội tụ theo cụm block (dễ dự đoán), chỉ dùng để kiểm tra tính ổn định nền tảng (sanity checks)3.
-
-### **6.2 Hệ thống Đo lường (Evaluation Metrics)**
-
-Đánh giá tách bạch năng lực nhận diện nhị phân và năng lực cảnh báo sớm về mặt thời gian.
-
-* **Detection Metrics (Độ chính xác Nhị phân):** F1-score (Macro & Micro), Precision, Recall, PR-AUC. Chỉ tiêu tối thượng: Khôi phục lại toàn bộ phần F1-score (có thể lên tới 75%) bị đánh mất trên tập Spirit do nhiễu miền2.  
-* **Early Detection Metrics (Ưu tiên Cốt lõi):**  
-  * *Mean Time to Detect (MTTD):* Khoảng thời gian trung bình (bằng mili-giây hoặc giây) tính từ mốc log bất thường đầu tiên xuất hiện đến khi thuật toán phất cờ cảnh báo3.  
-  * *Detection Lead Time (Thời gian Cảnh báo trước):* Quỹ thời gian (Early Warning Horizon) hệ thống trao cho các kỹ sư, tính từ mốc AI báo động đến khi hệ thống tự động ghi nhận tag sập (System Failure Tag)3.  
-* **Efficiency Metrics (Hiệu năng Vật lý):**  
-  * *Inference Latency (Độ trễ Suy luận):* Đo bằng microsecond (![][image12]) trên từng mốc sự kiện ![][image3]. Gating Network phải siêu mỏng, không làm tăng overhead quá 5% so với phép nhân ma trận tĩnh của Baseline2.  
-  * *Throughput:* Tổng số log xử lý mỗi giây để chứng minh Industrial Readiness2.
-
-### **6.3 Phân tích Cắt bỏ (Ablation) và Kiểm định Thống kê**
-
-Để chứng minh sự cải thiện F1 và MTTD xuất phát thuần túy từ Mạng Định tuyến (Gating), thực nghiệm cắt bỏ bao gồm:
-
-> 1. **Original Baseline (TempoLog Gốc):** Gộp 4 đặc trưng qua hàm tuyến tính tĩnh1.  
-> 2. **Disabled Gating (TempoLog-MoE Vô hiệu hóa):** Ép buộc trọng số ![][image13] và ![][image14] trong mọi tình huống để xem mô hình có bị sụp đổ trên tập Spirit hay không2.  
-> 3. **Full System (TempoLog-MoE Toàn phần):** Mạng Gating MLP mỏng tự động điều chỉnh ![][image1] và ![][image2] dựa trên bối cảnh đồ thị2. Thử nghiệm sẽ chạy lặp 5 lần (repeated runs) với seed ngẫu nhiên khác nhau để thiết lập khoảng tin cậy (Confidence Interval) và kiểm định mức độ ý nghĩa thống kê (Significance Test), đảm bảo kết quả không phải do yếu tố ngoại lai.
-
-## **7\. Risk and Threats to Validity**
-
-Thiết lập khung bảo vệ tính liêm chính khoa học của nghiên cứu trước hội đồng phản biện.
-
-### **Internal Validity (Rủi ro Nội tại)**
-
-* **Data Leakage:** Nguy cơ rò rỉ dữ liệu chuỗi đã được triệt tiêu hoàn toàn nhờ việc sử dụng cơ chế chia tách Temporal Split (60:40) thay cho Random Split3.
-
-### **External Validity (Rủi ro Ngoại cảnh)**
-
-* **Domain Shift (Dịch chuyển Miền):** Các hệ thống có phân phối đặc trưng (feature distribution) hoàn toàn dị thể (từ Hadoop sang Spirit). Rủi ro này không làm hỏng thực nghiệm, mà ngược lại, nó chính là bài toán mục tiêu mà kiến trúc Gating MoE sinh ra để giải quyết3.
-
-### **Construct Validity (Rủi ro Cấu trúc Đo lường)**
-
-* **Metric Mismatch:** Sử dụng F1-score offline không thể hiện năng lực phản ứng thời gian thực. Báo cáo khắc phục bằng cách bắt buộc tích hợp các tham số vật lý thời gian như Detection Lead Time và MTTD3.  
-* **Parser Imperfection:** Giả định bộ phân tích cú pháp Drain hoạt động hoàn hảo là sai lầm3. Hàng ngàn "template rác" sinh ra khi mã nguồn nâng cấp sẽ làm phân mảnh node đồ thị. Tuy nhiên, sức mạnh dung sai (fault tolerance) của Semantic Expert sẽ được kiểm chứng trong môi trường nhiễu này2.
-
-### **Conclusion Validity (Rủi ro Kết luận Thống kê)**
-
-* Variance của các trọng số động học (Gating weights) có thể biến thiên mạnh trong các epoch đầu tiên. Sự hội tụ (convergence) của Loss BCE cần được giám sát chặt chẽ thông qua các biểu đồ hàm suy hao để khẳng định mô hình thực sự học được cách định tuyến1.
-
-## **8\. Final Ranking**
-
-Bảng đánh giá xếp hạng toàn diện tổng hợp sức mạnh khoa học, độ khả thi và tiềm năng đóng góp công nghiệp để bảo vệ quyết định chốt đề cương cuối cùng.
-
-| Đề cương (Proposal) | Evidence Strength | Baseline Quality | Improvement Validity | Thesis Feasibility | Scientific Contribution | Publication Potential | Industrial Impact | Risk | Overall |
+| Proposal | Evidence Strength | Baseline Quality | Improvement Validity | Thesis Feasibility | Scientific Contribution | Publication Potential | Industrial Impact | Risk | Overall |
 | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
-| **\#1: MoE-Augmented CTDG (TempoLog-MoE)** | Cao2 | Xuất sắc2 | Cao | Rất Cao | Cao | Rất Cao | Xuất sắc2 | Thấp | **\#1** |
-| **\#2: FAME-Clustering** | Trung bình2 | Khá2 | Trung bình | Trung bình | Khá | Khá | Cao2 | Trung bình | **\#2** |
-| **\#3: LogMoE-Graph** | Trung bình2 | Khá2 | Khá | Khá | Cao | Khá | Cao2 | Cao | **\#3** |
+| **1\. TAC-LAnoBERT (Tiêm Nhúng Thời Gian & Hàng Đợi Trạng Thái)** | 9.0 | 9.5 | 9.5 | 9.0 | 9.0 | 8.5 | 9.0 | 3.0 | **9.07** |
+| **2\. Enhanced AdaLog (Tăng cường dữ liệu bảo tồn chuỗi cảnh báo)** | 8.5 | 9.0 | 8.0 | 7.0 | 8.0 | 8.0 | 8.5 | 6.0 | **8.14** |
+| **3\. Parser-Free DualBERT (Thay thế Drain3 bằng WordPiece)** | 9.0 | 8.5 | 8.5 | 8.0 | 8.0 | 7.5 | 8.5 | 5.0 | **8.28** |
 
-## **9\. Final Thesis Recommendation**
+*(Lưu ý phương pháp luận: Điểm Overall không phải là phép tính trung bình cộng đơn thuần, mà được hiệu chỉnh trọng số dựa trên mức độ rủi ro. Phương pháp AdaLog bị hạ bậc đáng kể do rủi ro mất hội tụ của thuật toán phân cụm động, trong khi DualBERT bị trừ điểm do bảo trì kiến trúc lai Transformer-LSTM quá cồng kềnh và khó mở rộng).*
 
-Dựa trên toàn bộ cấu trúc phân tích liêm chính khoa học và tính toán giới hạn vật lý hệ thống, nghiên cứu đưa ra 01 Đề xuất duy nhất (Ứng viên số 1), trả lời dứt điểm 8 tiêu chí kiểm định:
+## **17\. Final Recommendation**
 
-> 1. **Which baseline?** Khung kiến trúc Mạng Đồ thị Động Theo thời gian thực **TempoLog** (2025)1.  
-> 2. **Which limitation?** Cơ chế Cập nhật Bộ nhớ (Memory Updater) sử dụng hàm gộp tuyến tính tĩnh (Static Linear Aggregation) ép buộc hệ thống gán trọng số bất biến, gây ra xung đột đặc trưng liên miền nghiêm trọng (Domain Conflict)1.  
-> 3. **Which improvement?** Tích hợp Mạng Cổng Định tuyến Đặc trưng Động (Dynamic Feature Gating) dựa trên lý thuyết Hỗn hợp Chuyên gia (MoE)2.  
-> 4. **Why this improvement?** Đây là giải pháp kiến trúc duy nhất giải quyết được tính dị thể của hệ thống mà không phải viện đến các mô hình LLM/RAG nặng nề, bảo vệ thông lượng xử lý luồng (streaming throughput) cực cao2. Bằng chứng cắt bỏ (Ablation) từ baseline xác nhận sự cần thiết tuyệt đối của định tuyến động3.  
-> 5. **How to prove it?** Thực hiện phân tích cắt bỏ mạng Gating. So sánh đối sánh 1:1 với TempoLog nguyên gốc trên các tập siêu máy tính (BGL) và tập định tuyến (Spirit). Tuân thủ nghiêm ngặt kỹ thuật phân chia theo dòng thời gian (Temporal Split) để phong tỏa Data Leakage3. Đo lường định lượng các bước nhảy vọt về F1-score và Thời gian Cảnh báo (MTTD)3.  
-> 6. **Why feasible in 6–9 months?** Can thiệp kiến trúc mang tính phẫu thuật cục bộ vào đúng mô-đun Message Aggregator. Chỉ yêu cầu tái cấu trúc mạng Multi-Layer Perceptron (MLP) siêu mỏng2 mà không cần thiết lập các cụm máy chủ GPU tỷ tham số để huấn luyện LLM hay duy trì đồ thị tri thức2.  
-> 7. **Contribution level:** **Targeted Improvement (Nâng cấp Kiến trúc Nhắm mục tiêu)**2.  
-> 8. **Main risks?** Rủi ro kỹ thuật duy nhất là Mạng Gating có thể tạo ra overhead độ trễ tính toán nhẹ. Rủi ro này được vô hiệu hóa hoàn toàn bằng việc giới hạn nghiêm ngặt số lượng tầng tham số của mạng nơ-ron định tuyến (thin MLP architecture)2.
+Chọn **01 Research Proposal** duy nhất (TAC-LAnoBERT) từ các ứng viên có phương pháp cơ sở Q1/Q2 (2023–2026). Dưới đây là luận điểm trả lời cho 8 câu hỏi cốt lõi của hội đồng:
 
-## **10\. Final Thesis Definition**
+> 1. **Which baseline?** Kế thừa phương pháp LAnoBERT (*Applied Soft Computing*, Q1, 2023, DOI: 10.1016/j.asoc.2023.110689)2.  
+> 2. **Which limitation?** Giải quyết sự mù lòa trước khoảng cách thời gian vật lý (Time-Delta) sinh ra tỷ lệ dương tính giả (FPR) khổng lồ trong các tải bất thường; và sự thiển cận ngữ cảnh (Contextual Myopia do giới hạn 512 tokens) khiến hệ thống bỏ lọt các quỹ đạo suy thoái dài hạn2.  
+> 3. **Which improvement?** Tích hợp trực tiếp mô-đun Nhúng Thời gian Động (Time-Delta Embedding sử dụng Time2Vec) vào tensor đầu vào, đồng thời duy trì một Hàng đợi Bộ nhớ Phiên Liên tục (Continual Session Memory) quản lý vector \[CLS\] để đối chiếu khoảng cách ngữ nghĩa lịch sử3.  
+> 4. **Why this improvement?** Đây là phương án can thiệp thanh lịch nhất (Level 2). Nó giải quyết trực tiếp nguyên nhân gốc rễ gây ra sự mệt mỏi cảnh báo (Alert Fatigue) mà không phá vỡ sức mạnh xử lý ngôn ngữ không cần phân tích cú pháp (parser-free) của kiến trúc BERT1. Đồng thời, quản lý hàng đợi trạng thái \[CLS\] (768 chiều) trong VRAM bảo toàn được chi phí độ trễ ở mức ![][image1], vượt qua rào cản tính toán ![][image2] của Transformer nguyên bản3.  
+> 5. **How to prove it?** Áp dụng thiết kế thử nghiệm Cắt bỏ (Ablation). Đánh giá trên dữ liệu siêu máy tính (BGL, Thunderbird) thông qua phân tách thời gian vật lý (Chronological Split) để ngăn rò rỉ dữ liệu tương lai1. Thử nghiệm đo lường trực tiếp sự gia tăng của Thời gian dẫn phát hiện (DLT) và sự sụt giảm của Tỷ lệ dương tính giả (FPR)1.  
+> 6. **Why feasible in 6–9 months?** Trọng lượng mạng rất nhẹ (\~110 triệu tham số), mã nguồn mở hoàn thiện, cấu trúc minh bạch trên HuggingFace/GitHub (yukyung/LAnoBERT), và sự can thiệp kiến trúc chỉ giới hạn cục bộ ở tầng nhúng (embedding) và tầng đầu ra phân loại2.  
+> 7. **Contribution level:** Cải tiến có mục tiêu (Targeted Improvement / Mở rộng hệ thống có chiến lược).  
+> 8. **Main risks?** Rủi ro nghiêm trọng nhất là rò rỉ dữ liệu tương lai (Data Leakage) nếu sai lầm trong việc phân tách Train/Test. Khắc phục triệt để bằng việc chuẩn hóa giao thức Chronological Split1.
 
-**Improve \[TempoLog's Continuous-Time Dynamic Graph (2025)\] for \[Early Log Anomaly Detection\] by addressing \[Static Linear Feature Aggregation and Domain Conflict\] using \[Dynamic Feature Gating based on Mixture-of-Experts\].**
+## **18\. Final Thesis Definition**
 
-* **English Thesis Title:** *Enhancing Early Log Anomaly Detection via MoE-Augmented Continuous-Time Dynamic Graphs: A Dynamic Feature Gating Approach.*  
-* **Vietnamese Thesis Title:** *Nâng cao Năng lực Phát hiện Sớm Bất thường trên Log qua Mạng Đồ thị Động Tăng cường MoE: Phương pháp Định tuyến Đặc trưng Động.*
+> **Improve LAnoBERT (Yukyung Lee et al., Applied Soft Computing, Q1, 2023\) for Early Log Anomaly Detection by addressing contextual myopia and time-delta blindness using Continuous Temporal Embedding (Time2Vec) and a Continual Session Memory Queue.**
 
-**Thesis Summary:** Nghiên cứu này đề xuất một giải pháp nâng cấp nhắm mục tiêu (targeted improvement) đối với khung phân tích luồng sự kiện tiên tiến TempoLog (2025)1 nhằm phục vụ chuyên biệt cho bài toán Phát hiện Sớm Bất thường trên Log (Early Log Anomaly Detection). Mặc dù kiến trúc Mạng Đồ thị Động Theo thời gian thực (CTDG) loại bỏ thành công hạn chế "độ lệch ngữ cảnh" của các mô hình học sâu dựa trên cửa sổ (window-based models), cấu trúc này hiện đang sử dụng một hàm gộp đặc trưng tĩnh (static linear fusion) trong mô-đun Cập nhật Bộ nhớ1. Hạn chế cứng nhắc này gây ra sự xung đột nghiêm trọng về miền dữ liệu (domain conflict), khiến hiệu năng sụp đổ khi dịch chuyển giữa các hệ thống có bản chất vật lý khác nhau (minh chứng bằng việc mất 75% F1-score trên cụm mạng Spirit khi thiếu hụt đặc trưng ngữ nghĩa)3. Để khắc phục triệt để lỗ hổng này, luận văn đề xuất tích hợp một Mạng Cổng Định tuyến Đặc trưng Động (Dynamic Feature Gating) dựa trên lý thuyết Hỗn hợp Chuyên gia (MoE)2. Cơ chế này phân ly luồng dữ liệu sự kiện thành một *Semantic Expert* (xử lý ngữ nghĩa) và một *Temporal Expert* (xử lý thời gian trễ), cho phép mô hình tự động phân bổ trọng số chú ý trực tiếp tại mốc sự kiện thời gian thực1. Phương pháp sẽ được đánh giá nghiêm ngặt bằng kỹ thuật Phân chia theo Dòng thời gian (Temporal Split) để loại trừ rủi ro rò rỉ dữ liệu3. Kết quả kỳ vọng sẽ đóng góp một hệ thống cảnh báo sớm với Thời gian Phát hiện Trung bình (MTTD) tối ưu, sở hữu khả năng tổng quát hóa liên miền vượt trội, bảo toàn độ trễ vi giây (microsecond latency) của kiến trúc luồng sự kiện nguyên bản mà hoàn toàn không lệ thuộc vào các LLM đắt đỏ2.
+* **English Thesis Title:** TAC-LAnoBERT: Enhancing Parser-Free Log Anomaly Detection with Continuous Temporal Dynamics and Session Memory for Early Warning.  
+* **Vietnamese Thesis Title:** TAC-LAnoBERT: Cải tiến Phương pháp Phát hiện Bất thường Dữ liệu Log Không Cần Phân tích Cú pháp Thông qua Động lực học Thời gian Liên tục và Bộ nhớ Phiên nhằm Cảnh báo Sớm.  
+* **One-Paragraph Thesis Summary:** Luận văn này đề xuất TAC-LAnoBERT, một bản nâng cấp có mục tiêu (targeted improvement) đối với phương pháp cơ sở LAnoBERT (xuất bản trên tạp chí *Applied Soft Computing*, Q1, 2023). Dù phương pháp cơ sở đạt hiệu năng cao nhờ kiến trúc học biểu diễn ngôn ngữ loại bỏ hoàn toàn bộ phân tích cú pháp (parser-free), nó vướng phải hai điểm nghẽn nghiêm trọng: sự mù lòa trước khoảng cách thời gian vật lý (time-delta blindness) và sự thiển cận ngữ cảnh (contextual myopia) do giới hạn của cửa sổ trượt Transformer 512 tokens. Hậu quả là mô hình hành xử như một công cụ phát hiện phản ứng (reactive detector) sinh ra hàng loạt cảnh báo giả (high FPR) khi tải lượng hệ thống biến động, gây ra hội chứng mệt mỏi cảnh báo (alert fatigue) cho các kỹ sư vận hành. Để khắc phục triệt để, nghiên cứu tiêm trực tiếp mô-đun Nhúng Thời gian Động (Time-Delta Embedding) vào tensor đầu vào nhằm nhận biết nhịp điệu vật lý của luồng sự kiện, đồng thời thiết lập một Hàng đợi Bộ nhớ Phiên Liên tục (Continual Session Memory) quản lý các vector trạng thái lịch sử \[CLS\]. Hệ thống sẽ được đánh giá nghiêm ngặt thông qua kỹ thuật phân tách chuỗi thời gian (Chronological Split) trên các bộ dữ liệu công nghiệp lớn (BGL, Thunderbird). Đóng góp thực nghiệm kỳ vọng là việc chứng minh sự kết hợp này giúp gia tăng đáng kể Thời gian dẫn phát hiện (Detection Lead Time \- DLT) và giảm thiểu Tỷ lệ Dương tính Giả (FPR) trong khi vẫn duy trì độ trễ suy luận thời gian thực ở mức cực thấp, đáp ứng trực tiếp nhu cầu cảnh báo sớm (Early Log Anomaly Detection) của các kiến trúc điện toán đám mây hiện đại. Đóng góp mang tính phương pháp luận, không tuyên bố thiết kế một mô hình hoàn toàn mới từ đầu, mà cung cấp một giải pháp phẫu thuật mở rộng kiến trúc thực chứng sắc bén, bảo vệ niềm tin của con người vào trí tuệ nhân tạo trong vận hành.
 
-#### **Works cited**
+#### **Nguồn trích dẫn**
 
 > 1. result-1.md  
-> 2. result-3.md  
-> 3. result-2.md
+> 2. result-2.md  
+> 3. result-3.md
 
-[image1]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAAaCAYAAABsONZfAAAAkUlEQVR4XmNgGAVDFbgC8QYgzkOXwAZMgPg/EDtA+VVQPgxMQ2KDgS4DRIEQmjhIbDWU/RdZAgRAki/QBYHgHwNEzhyIo5ElHKAS7siCUPCIASKH7EwwAFmPIQgF1xggcpLoEg0MuDVdZMAtB5ZQRRO7B8RroXIg0IckBwagUAOFDsz9M5Dk7kPF4pHERsFwBQBRqyKsylFqowAAAABJRU5ErkJggg==>
+[image1]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACsAAAAaCAYAAAAue6XIAAABwklEQVR4Xu2WTytEURjGH/9ZEAvKAgufQWQjf8IHUCxkslD2SvIRlJIsfAcfwYaNZCU2oiyQBRaUQv6+r3MuM49773tGQ9H86qnxO89953TnzjFAkb/DIAuDZkkpy+/QJlmVrEjqaC2OackcywBeWeTDEtyACf93q+RCcv/R+EqL5JxlFvVI3lSl5IWlhX4cOnCTFzxPSB6q11WTa5Sc+LUoSWxJFlmmocOOWWbRB9fpJ98teSDHWJstQ/p6Dmewy9GdXyP/CPtZtTar6PoAS6YHrrhBnmmA612TV1dDjgnZ7IFkhyWjd0YH8TPHjMP1drNcrXcWIZudh90JGqQcwvX0iIro9c4i5D3GYHSaEDZIietNxrg44q5lOmF0om/hHS8QI3A9PtYy3luEbLYDdidoUFKnC/GeSbo+m1HYHdwgvRQd7BW8gM8TwiJks3r8WZ13tLTHUriEOy3S0Gv1X2YaIZvdR+5Jk8oV3MBtuGdYX+tDb6G9GZYePZP1N8Opj77mczpC5wyxLDSzkluWeVIC+84XDH2jcpZ5sC5ZZvlTDEuOWAaivzmeWf40C5IplgH8+kYjMiwM2iVVLIsU+Q+8AcPof4U5yGDQAAAAAElFTkSuQmCC>
 
-[image2]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAAZCAYAAADqrKTxAAAAz0lEQVR4Xu2SvQ5BQRCFR+e3VOi1Kq1E4g20Ku+gUQgJOq14CI8gCjyB3htoiYQIzmTvJHuP3YhS4ku+ZPbMzmY394r8LCU4hz1uxFjCWVJX4dPrBenDBmU6NKAsxYEDcUNjDo0FLHAobijDoWF3L8NmUt+9OsgWVsQNqzpwTu0gWhI+UYdHHBo7DhI28MKhEfsWD3jiUMnDNYcgJ+6wOjeUqbhHM0e459C4wS5cwSLswCscenve0A1GG9a8dRB9T/QXiTGBWQ4/4V/tzze8AO5lJQmNZQCaAAAAAElFTkSuQmCC>
+[image2]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADsAAAAaCAYAAAAJ1SQgAAACl0lEQVR4Xu2Xu2tUQRTGj08UiZLGVEYI2EoKxVchKmjA1iKEYFQI2GgjilrYCcFKwUILi2gpiuA/oIIYCAENgiaChYgYXyiJb1HPtzPjnv12du7uXvYqsj/42DvfOXP27sydubMibf45xlW/VHc58LfZyUZO3pjry6rvpg36qd00q1UXVOdVyykW46DqOJs5wYyO+Ot5vm3pUT0gryHOiiu617e7Va9UX/5kVLNK9YJNA2YINYOYp1IZn6oMl1gv8b7nVBfZzGK+uGK3OeD5ofrJpgf9lrBJ3FBNiMvdRDGwUPWITQMe4QE2PbFBSIIOGOFabBeXs4P8zaqv5MVA38X+8xvFwCHVbjY9lyS9Pq9IA4/zc8kenTDzV8nHiNezVj/4T/xQ1MFMWl5SO3BAtdFfb7EBwwrJvv8SW8Ul3iKf6RSX9558eEvJY9aqjvhr3DD63CmHS8Rudp24DWqfaljiazmA/pkbKWYGiVlrblBc3n3jdXgvi+uqBaaNPtzvHrVByLOqBWIn2GSyigSmxeXhFRPY5r0sOAezBS/MNmrmfUej3iiblpVS/4+N5e2PeDHCerXYejM20CSfVWNsWvBo4QuRmGKPuDx+LQ15P0Wv6iibykNxfdf4z7x8FPdqSxKbMaZWDnbJmG+5KdU7L1gmri9mnTerZkAt7A1J8GWpG34mLr6IA1LeoVOk4jikII61nxfUOclmDCROsqm8lurDN4O+OCzEOCwujnNtjD5JD0YjoA4Gvy7C+RWLHGsY1xsqMuIgL+yqATy2s6p3Xp9UuyoyyrxlownCkmg5x1RzbBYM/p1dY7NVYFRjm1BRFDKrAay9J2wWxCnVaTZbzRlx59ci6VI9ZrMohthoMdjt27Rp8x/yG7wVqXmjnjTHAAAAAElFTkSuQmCC>
 
-[image3]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAcCAYAAACtQ6WLAAAAe0lEQVR4XmNgGOTAEYht0QVh4D8Qr0UXhAGQZAG6IAjoM0AkmZAFbYDYC4h3QyV9oXwwKALiEqjEWygfhFEASDIXXRAEdBkgkozoEiCwhgEiiRW8ZsAjCZLYhMTfhsQGS1pA2RlIbDAASYK8UwfEK5AlYADkeQl0wREPAGL/GMEfWDMiAAAAAElFTkSuQmCC>
+[image3]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAaCAYAAABCfffNAAABCUlEQVR4Xu2TPw5BQRDGB4nEJZyAC0g0ohB6F3ABUSgkKo1EoRC1aHS4gAvoNCqJTilaKmYyuzI7dp8neYXi/ZIv2f2+2X377wGkJMgDVdBmkgxQT9RFB0lCH7DKqywE1Ta1GaKLGqGGwAPPbuylDFyb1UEIKpZtUk54Prbgjoukg5qI/hh48FF4kgbwEVHNHdVCVZ0KD77V2N346KH6wPnK9OtOhaKNmmsTmQFPsteBwd5HRgc+QqslonazhnDmQGe71KZgATzRTgfA/lWbPuKsJLQb8ujZR1IB3vI3NsATytqS8ez/UYPAxdsV/iILPVnZv4n2myJ8ThBHUxpsOBnvILyUlJR/4wVMWVSSGaGDLQAAAABJRU5ErkJggg==>
 
-[image4]: <data:image/png;base64,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>
-
-[image5]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACMAAAAaCAYAAAA9rOU8AAABaElEQVR4Xu2UvSuGURjGbxYx2pRslMRCZPIuksU/YLCa/AGUj8holEyySkxmm1nKiEyKxUTk474699t7u55zet9XHKXnV1ed53efzjk950OkpKTAhGZPM0M+O++aIWvva65cLStvLJQPFjlY0vST65A/Wkxs0l3NK8sYk5pjzQIXvkGbZtPaA5peTZfEF/iFEQmdKva9aN9Vtl27UdY07ZozCWMhOD/zvhMzKKFjJ3m4A2vHDmE9nlkorVLnz6B4x1LCdURtTDNLtUZ4YmFgzHGWoCKhOEUe3Ert9zYLtmeFpYHxcCwKYBtSk11KqOHQNcu6hCvMjEp6PlmVdPFc0rVlFsSLppulhPFOWXrQAdfOg+f60Gpgy9WOzJ84x2Ax1+QuNDfkCuAW4bZUz8eOq2FAuDnn0P/efAxsz4ZmWGrjPmimfaef5pGFgYXgAGejT9LXHVuUFbxBKVLvy6/RwsLRw6Kk5N/zCXLAT07Qm0RyAAAAAElFTkSuQmCC>
-
-[image6]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADcAAAAaCAYAAAAT6cSuAAAB9klEQVR4Xu2Xu0scURSHD0YMAcHGRqw0WIkiYuHrP0ghWKewsbARixC0shAURLAQRLFThBDSBREjWGmtiCAoYUuJbxErn7/jmWXvHu/euTOzExDmg48dzu/OOfPYWUeijIx3Rz0cgYuw0ah3G9tp0AYn4Sz8aNQnjO3YrMBneAy/wCY4D09gV5ClQY6k92/YC3vgIZyGP+BeYWk8uPkTrNEBGCPJ93WQEP6GcF8+ORvnJHm/DqLwQOF3JfEQxSeSnkc6MGih8ONyck3SgIe5SDTEAvfz6emzxkr+yriuXp7YQyz8Iun3VQcWdnXBl0eSIbbnLE1871oi/ssQxWeSmfycp0qSk1vTBU++kcxc1kEEQo/5A8mifzqwYDabgX2qFoVxkn2HdGDhjy6Q/M3zmu1z5zrhgC5S+H6l4Dce3venDhTrsELVWmEdec7+S7KQ76INrp/qYoBrwHdYqYsGYRe1A07pIskJM659i+CF/HDrE2yHZ6pmUmrAMEl2qwODWpI1BzoAo3BVF8GOsV1qtpVNKlzNu+BzsGjFW1wDchT+a1gFr0j68Gsff97AZnNRQENgHtfsshA2ICyPwhzcCtwm6c3bqeE6eP53ZUkXy4T3D0ocNki+TvzGfgnvi+NX+M0nDRZIZl+Q+5lOlWpdyMjIyHiXvADmOnxr5aKQ5gAAAABJRU5ErkJggg==>
-
-[image7]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADcAAAAaCAYAAAAT6cSuAAACMklEQVR4Xu2XPWjWUBSGD61aBMFFdHBr6yC1IMWh/nQvupWODl1EXGzBH+qkICi4uAniIkqhFLeCgnZy0skfBLFSCjoUq1JbUUTU+r6exJ6c3ib5ki9KIQ88fDfn3J/k5t4kn0hNzbpjJxyB12G7iR8w5SrYCy/Bq7DNxC+acmFuw2X4Gh6Bu+A1OAf3R7kqmBXtexIeggfhS3gFjsOnK1WLwc5/wa0+Ac6J5p/7REm4QtgvLy7EB9H8gE80wg/JviulB3FsFu1z2icM3ZJ9Xql8Eu2Ag6VRapAA7C9Pn3nqBIlnJm32YgoPEuCOaH9HfSLAEx/Iy0/RQUL7rEry3rVS/JNBHB2iY3KfV0rRi3sj2o6P6UY5Ldr2lk9ksB1+hUvwjMutolV0kHc+EcBOwBdT5vvwrTnOw3nR/k74RID7pszXFM+ZsP2gyQXJc+d64ZA5Zv3+qFzkxc4vHraZ8AnHPdhijufhxqjM9sMmF2RGtGI8Ix7G2elacHmELu4s3OCDhqxJ3Qcv+2BEp+jSzAUH4eb2F9gD37uYh213u9jJKP7ZxS3bROu88AkwCsd8MOICfAgPu3gqD2RlNrmn+HssUWM1z+AeH4yYleyn4Sa4IDoW9xN/F2GXrbQGrMt3ZSXchDui8ikTt6Qtu0bhP4RX5vixNLf/v/Apx6U3BI/Db4mswpO54YMl6JPkxXyX5JO0acTLN/ZjMv0Hfvk0m7twCj4S3RL/jS0+UFNTU7Mu+Q1FVoWY9IP92QAAAABJRU5ErkJggg==>
-
-[image8]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB8AAAAcCAYAAACZOmSXAAABbUlEQVR4Xu2WvS4FURSFt9+K6CXiARAkolSoJRKNB/AAolLceAHR6OgUKPS8gUQhaEQhceOnoEAhCArWzpnJ3ZZ94s4P1XzJSs75zsysuWcykytSjGMWhi0WZbKEdLEkPliUxSML8EnzcWSeXGEWkBmW8rNc8VwhDmmuBTa8VireBY+QaZbggQXTjvQio7wQwSv3nHKC9LBMWZf4lsXwjvOccs+C6ZZs5S80n0TOknHdLkgT12yTbOWLyBS5d/E/Or9es0WylSu3LBwGkTmWHrZ8CDmXsL27SGt6kGEb6WRJvLKIkZYfIJtIB7JjvMcFC8Oq+DftkpZsGJfnceQiVhLzpRIriflSiZV4/gZ5MvN9CY8oN16Jwn7P+BTvvKYYQ2alUaLjAWTY8SPJOfpFu0rG+rrlLl9D7pDrJDrWfynLjl9JzrmUcANKTcKr+W/oL9XvgPIsYafqjeW/pQ95k7D1E8gp0v/tiIqKCsMXfr1rim1DRKIAAAAASUVORK5CYII=>
-
-[image9]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAAAaCAYAAADcx/BtAAACHElEQVR4Xu2XO0sdQRTHjxrwgWkCCQhipYVKQgyCKAgqiKDR0sbCb2A6A4L4BMEipQiiJFiK4AcQBLFJmUKxivgC9Qv4ADX/k5nR8TB7HXevu4nMD37ce/9nz7Kcfc0lCgQCgRfHKzgDR2GhqAXywBe4or+/hbew/L6cCcuwVob/Ky3wq8g24LrI0mAL3pA6yWzdw3I28IEk5VIG4BxuyjBFPtELGnI/bJUhqf1WyTBFEg+5E67BIVmIQdIh8xXLvIYdsAgew+G7LbIh9pAbSTW26d8j+rdhzvruS9IhX+hP8ww0Zk2sIb8n1fRG5JyZt/q1XfAkyUBK4ZgMwS6pF99jLJBaAbj8Ab/DJbiot+352+WHGXK9LOSCG05kSPdv0iY4IGo270jdCVLulRnrcwVMwmIZgnFKdvLygRkyX5xetJFq6BI5c0B+t2g17HPIfTJj21VbTlyrCuYnPX48z40Z8gdZiIIfB1EHvUOqViELnkTt1we+i1zwPrdl6IDvhNkn2KvavDBD/igLUYxT9DB+UXTNh7i9ZeTubSCVF8hCypgh8/F4ww01IvsNV3WN+WbVfHENyodpeEZq6WaoJLW/ZivLim5Sx/JZFnLBqwpePXAjO2/V9nQ2aGW+xB3ylf40dxLLK4Gs4RN/Co/gof7kbN/eKG3iDjnqpRdwwP/Qngo/jydkGMgvU7BEhoH84rOGDgQCgUAg8K/yB5s8gqiT89rKAAAAAElFTkSuQmCC>
-
-[image10]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXMAAAAcCAYAAACTb1+pAAAK+UlEQVR4Xu2dB4wkRxWGH2BACDAiJwmfCSYbMNhk7gg2wYCIMgjwgUEEASbZZPCZbIIRYEwQ+NZgE0XGBiTgDmxyjiIfGYPJOUN9rvqv37ytnhvPzO727NYnPW3Vq+6enurXr6veq541O3dcOMkRUelYiopGo9FoDI9dUWHZwYvrJrmPqzcajUZjYLzKRh033DnJl4Puf6HeaDQajQFRc9JfSnL3oDs+yQ2DrtFoNBoDwYdYrmXZuUve4tqumOSDrt5oNBqNgbB3kvdEpdVH6/CbqGg0Go3G2kNs/BVBd1dbHi8XfU6+0dioXDTJCUmeEBsajdXkOkneFXRfTHKPoBNfj4p1BjMVH2YaJ7UZTWNj8bYkLyrlq9p8BjvRzsZJo7GbvZJ8J+hkJMTPGXWIyyZ5mauvZ65puR8+HRsKX0jyu6gcIO2GXzmenOQWQUd/Pz3opmWcw95i/W1D4vSoaKws0Siem2RHknsG/QuS3Czo1ity5p+IDY7Yb0NkEc5xtflLVEzJd6PCcn8/KyqnZJwzh19ExQAZd/6NFeBDSS4YlRU20oWRMz8z6N/gykPvD5aSDv0c14J5OPMTbfm7GUB/nycqp6TmzO/tykdZnj0PlfPa8vNvzACG9Y4kf7ccFnhlkv+MbJH5RlQENiW5V1SuIQcneXeSI2PDnOhz5t441R+3TnLzJDdOctMk+ya5QJIDk+yf5IAkV0hykySPs+wIrp/kIpan6ks2Gs7yHJTkm0lOs3x8wbEen+Q1lvdluv9i136Ydc7gTkXIBzTm48xlB5dOsrmU/+3K86DmzN/nylz3K5fyFsu2h43cquhul+QGSa5nXTjo8CTPTvLWUuddkpOSPLzUazAj32VdbkA8JMkLLYdeebDhW7B5ICRLf3j7O6S0NaZAT8Y7Ot2pRReh8+8WlY6hJPtuZPn8t5T6U0td4CjngZz5Vyw71NtbNuha3z3UskHr5iMUdSFXJ+7O8RhVfarocChMx3nYHlp0p9gofPYvXZ1tXl/K/li8C3D1UkaYZeHoVaeMXOacPRvzcOYfS3J56/oYx/XnkS1mR8fG/jbbclv3PCnJ2ZbbP1p0Hyh1BnIvLzpsTsdlUMfPdMBPi44cmrhS0fEwANmUwLlT/57l/nina2fbk0td9veo0taYgqdZ7kye2J5vhfpKsC3JG3uEUMVSku2WndPrLI9Y9wSGx/e5RNCje3sp12Yd0yBn/pMkz7P8kwccu+9mAkbqtHMTQN+26B8ZdMcWvUZaOpaHUVTUUWfkDtssLysVtMXtG7M789tYfQROXx8TlTOg64f9vTTJZ0t9HLT/vpRx3LX7ihVpteOg+2eon+Hq0uG0fV3H4qVC/5IhA47a5zSmYD/rOluyyGthOf+zojLxX8ttTDHvF9oibDeJw58kzALx5w2+Zt151mKqQPuDotKynhGSyggzJi/oCOEI6n2hJh1jo0Ioi5lclL9VdMjF8m575ONRUdiZ5K9RGWDQwTVhJrUnatfvk6Eef3JDM8LXWveQj7D0OB4XGF1LT/iI8sNs1P7+ZKP3T+0cRXPmc4aYljrcy6KxxfJ5E+6I/Ngm/15sM4sz/6MrM/3c6uqC/Xx4JEJ7nzPXd1CZuGcUD9vcJejEpH2yXiFOy0wlCmGHqEPIa0xCX58yqMDZjePNlvffJzZUqF2/Y0I9tsMDLev7wmqfs/p+xNLR7285Hk75ibbc/m6rHco2tWNBc+YrxDWsW92AMK0HjGOndbEz4uzzeGWfODIPkknlsXm3XjSiqcEIhDZimPNikqWJxARjyGeTdaPzo0abdkNbnzMn9qpy3/f1sE1fYike4/2uPHQm+e7TMmuY5TNRUeCcSQLOi3j9anw1KhK/tS4GXqPPmX/Esv7i1uVgcOrjGHeOMVRIjmfRIUTc931XFJy3nIOHk3lmKbMKg9f5t5U6LzywQmJobLP+TiRR2Nc2LXLmcVrrqX2mdEo01abu6KMz5zqgV4yTtf614zOCvKSrsw0re2rEG43p9RDxCXoRY7XzZBZnzsiUhF+EwUjtes1CvH4RHs7YiYcFAA8oZfb9vmsTfc48fh7lWqjGv2QY9/GwoMK3xZfsYt5oUej7visKSRM+eMnpHlx0LIsT1FlVAcT89nFtQ4LzvFrQ/cDy0kt1MA+wecBSLo7JTwFHCK8wVfcXVfkJpqVChr6X03l91PkQDvzDlj+MfYjo/Jb3u7/TebSaAZiZDfWfi9TyICvJLM78TMvXQPcLbLbcz5OGaSalZidAXPx0y23kiYDzYXGB356cAfWnOB3ImR/tdM8oOpa8CpY4ouP3mwTJWC19hL5zBOyeNgYqQK5CcJ80Z34uYHT43iRvsq7TmX75kR34k1uTE50QQhpaUYK82rXtKrqtTjcNe1t3/EkEcOw/S/Jz6xzFfZP8ynJ/o8cxC/ZjZM6DQseJa3gFiSxt40dJH7bsBFltw2cwta6h6bYfTXFzsc6YUR1xXkFijwEA34ff7AF/fqdY7v/zWZ4N8QYkN7dYsrwEjfX/O51ex7i25d8y+Zd14Sklr31/ctNT5mElfmR51Mk5zvoW8izOXOf4w1JGjtvdOh98f+xJgGQlORpsgb96uNOPvCWKDWCLegDJmWvAgjCIi34BSHpiW9ruUNdGOBa71+cyqIoQAdC+WhCww+n0HYDFBKy0227dihltwwyXn98mJ8H1x37JP/i3YLUta/HZH9vyM2NCRtgmy4jZH3jQsQ/5gtMsfx9gGeVLLK+0izMxf86Dgguo5UiXsnyixM37kieN2aGPY5hlNeHzdWNrmo5D8u8SeIOlrBU0xFVx9r5N8NDi5odfW36ZSrCdRmK3tOwAfFsEnZz5t63bl5esnl/K0zKLM+9bybJIfN7qfb6a7LDRkTn26M8Jn+SX+JIzg7gdzv8Oru7biP2rzmyaAYFgZoCzBtbvy6afU/6yVl+LLXgwHFvKsNZ9Nxae1CT6iLVh6FzsxsqBMRwRlauIXv5ASFIB5bMtO1nEG6wvM3rh/QURDZvf8+FGYPR9uNP77Q60/geCQCdnTpkBxrxgZjENxMv9A2pRUYJ+Ldlho85c4V/ZHzMFFlEA+suVsuqC2a1yBBC/F3VmLoyufX6BWaK2ZYBA9CJCOIlwFj7xJKePn9HYgLCEkFABxkDY4xGjzavGvuUvIw/ORSMYlpLV8MZL2A7jF76NspatMSDYGtrEAVZ35puCzjvzaR3wPDkjKhaQIy2PeulT4uSyhdWGB/5jSpmwyWHW7yTRx6S/wM76Bg2qM1skEXyC0/NegbbFnpe6pnMgV6X8Fz+Tsd21xc9obECIUSIkmTDg2iqO1cAbI9NHEndxGkoyTfjtWUHBtFSojdik346RFaEkRvLg27iRFNoDOeuDg07OnNCOPx/COWtB33r+RYKHLW+EY4OMPHlrcy041fLDBJRQ5ZprBsZPUpDAlV7hO9UFK7S2urpvw6ZVv4qNrqZhiaFG6sw0qXv8cfhHPSdbF55rzrwxGDBKHDfrfpVoAh4wGCptunl4NZz4N/uQWCIZhnADkIyiTatwSBaxHckwEskkoPgxKHRsx7EIsXBTkTzD4QOJL0bqehWcZDHtei0dliwn9HhBrLE+ICnrk/o4cmasxME1ipYtYDPk8bAJ6tgCo3JskTYGDoD98qBggUBclrnZcgLf53OwY9m0H2A82rptSdxiyzxcZMt/6DZtNBqNxrxpo+ZGo9FYcBh548wPig2NRqPRaKw5/weHw1aS5KdKNAAAAABJRU5ErkJggg==>
-
-[image11]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAaCAYAAABCfffNAAABCUlEQVR4Xu2TPw5BQRDGB4nEJZyAC0g0ohB6F3ABUSgkKo1EoRC1aHS4gAvoNCqJTilaKmYyuzI7dp8neYXi/ZIv2f2+2X377wGkJMgDVdBmkgxQT9RFB0lCH7DKqywE1Ta1GaKLGqGGwAPPbuylDFyb1UEIKpZtUk54Prbgjoukg5qI/hh48FF4kgbwEVHNHdVCVZ0KD77V2N346KH6wPnK9OtOhaKNmmsTmQFPsteBwd5HRgc+QqslonazhnDmQGe71KZgATzRTgfA/lWbPuKsJLQb8ujZR1IB3vI3NsATytqS8ez/UYPAxdsV/iILPVnZv4n2myJ8ThBHUxpsOBnvILyUlJR/4wVMWVSSGaGDLQAAAABJRU5ErkJggg==>
-
-[image12]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAaCAYAAACzdqxAAAAA90lEQVR4XmNgGAWjYPiBeiAWQxPjhGJswByIZwFxGroEOvgPxO5YxNaiiYHANSCeBmVzAPEfJDkU4M0AMQQdgMSM0cRYoeIwcBSNjwLOMWBKhmERAwETBoj4PSD2QZPDACCFZ9HEbkDFsYF/DBA5GGZGlUYAkGQAFrEjaGIgwAilWYC4iQGibg1CGgGCGCCSoLBDBiAxLygbFoEXoOLIAMQHmYEBLjNAJLORxP5CxZiAuJcBkeRAYu0wRUCgCRXDCkASj6A0CD+Biu+A8ldB+TDwEioOwgdQpVABSAHB2CUVgCIMp1coAacZaGTwdSAuQxccBSMYAADkYT1Q21q9xgAAAABJRU5ErkJggg==>
-
-[image13]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEMAAAAaCAYAAADsS+FMAAAB3klEQVR4Xu2WzStEURjGX2yslQXFQomUndiO8rWwsbKw8B8IpXwVhY2FYiFCPjeTCBspOwsrycZGUVY2slB2Pt5n3nt17uucOya5Gp1fPc2c53nPvHPunXPuEHk8Hs//Y5X1zrpnVarMxQArzaoLxrWsHVb/Z0Ue8sZqM8a4KB3G2MU0Sa2py0hFnjFFsgiTTotnY4K1wNpkjbOKonH+gUVfa5PEr9CmAhegWZu50so6YPXp4A/Aok+1SeLjrscxRj+4GA0kTVLBeDQYhywa75MC/Y+0SeIfa1MxwpohqV0PXpcjFQ7qSYpLlA9vN3j/agYWulnbDm2xNki+1BrJ02E+M8tNIUn/fR2Q+DfaVAyyTpSHeTiHYkHRgzZJTnJkTawelSUBemPLauCfafMbYB7kJEVS0K58gOd61g/4RdBX310Af0WbigJtkPy6Y9eCbeAqwEmOrEwHFlpYszkI/wOygd6upwm2ZRyoebR4rrVmmCR3wRW5syQIb4ZJo8UrZ3UpDzVDFk/P/QIKqpV3y9oLMjBnZEmBAx39iw3vmXVhjIFtkS+sUmOcIqmpMTwraBruJ2jJyO4Cr9fwkgTbD/0PWU+s82icYZjsBy22SbgmqCoaezwej8fj8XgS5wOjLoGQyV9KxwAAAABJRU5ErkJggg==>
-
-[image14]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEIAAAAaCAYAAAADiYpyAAACBUlEQVR4Xu2XzUsVURjGH9MoMImCoMQ20sLoXwikbOEmaOFK0LVLqY1gIrTpa2ttoiikjVvBpVR+gEvBKLIvAsUgUNC+oK/39Z3RM89958514bS45wcPd+Z33jMzZw4zZy4QiUT2SItkTHKNG+qJCcndZPuM5G/QVjYXJK9h1/CU2qqxIemTHJMclfRI1jMVBQxJzpPTi7hOrgyuSv4E+wOofVK0jtOWqShgmQXsIDdYloCe96zjbpHz0LqbkvuSLmorRDs1s4QdtIHlPnMF/uz/hO+ZWmpySTufkHQm27+C7TKZhj+YD/A9U0tNLs8lp7D7TOlN2MpUlIe+7LzBvITvGa15A6ufh42lKVORw0X4M68HHGXpMF4lTySPJY8kDyUPYKtRNdLJYBbhe0ZrDgX7U4kr5AWLhGeSbyxLYBX+hS/B90V0wPqNcAOTd3BdvjZZlkDeO+IdfM800v4BWL9X5CtYYJGgne+xdLizx5yzbrkMwx9wLavGW1jN4cAdSdxs4Cq4BOvMDKL4pPuJnvu44ybJ6U0L+ST5Sq4b1reXfAa9S7+R/VbohHVsDVzZrMGWy5STsGs6GLh0sj4H7jTsEQr5IflOroJ01j8m25rbO63/ly+wQaZv/fZs8zbvUfkF2g+rX0l+57LNPnkrRl2h7wf9h1f3zLCoVy6ziEQikUjE5R8oL4j8oOJEeQAAAABJRU5ErkJggg==>
+[image4]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAbCAYAAACqenW9AAAAo0lEQVR4XmNgGNrgKhD/AeL/QMyJJocV7GWAKCYKgBSSpHg6uiA2IMUAUSyBLoENzGJAdUIbED9FE4MDZPceAmI+IF6FJIYCQIJzgfgSELNCxeYB8T24CiiQZECYnIMmhwEiGCAKQREDovegSqOC6wyobgOxpyDxUQBI8hoafyWU/RFJHAxAkmFo/GwgZgTiY0jiDGJQSWTgBxX7gCY+CgYbAADqfCrdk3T3XwAAAABJRU5ErkJggg==>

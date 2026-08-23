@@ -1,447 +1,370 @@
-# Đặc tả Thiết kế Phần mềm
+# Đặc tả Thiết kế Phần mềm cho Phát hiện Sớm Bất thường Log
 
 ## 1. Kiểm tra Design Freeze
-| Thành phần                    | Định nghĩa đã phê duyệt                                      | Diễn giải ở mức phần mềm                                                                                   |
-|-------------------------------|-------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| **Baseline**                  | Định nghĩa baseline trong result-6.md (Baseline 2025–2026) | Module `baseline/` triển khai đúng mô hình/phương pháp cơ bản đã được chấp thuận (ví dụ: mạng LSTM/CNN chuẩn) |
-| **Hạn chế**                   | Hạn chế đã xác nhận của baseline (ví dụ: độ trễ phát hiện, ít ngữ cảnh) | Phần mềm giữ nguyên hạn chế trừ khi được cải thiện; phần `improvement/` mới khắc phục mục tiêu đã định nghĩa |
-| **Cải thiện có mục tiêu**     | Mục tiêu cải thiện chính theo result-6.md (ví dụ: tích hợp tri thức, LLM) | Module `improvement/` chứa các thành phần bổ sung để đạt mục tiêu (ví dụ: truy xuất kiến thức, LLM prompt)    |
-| **Thực nghiệm chính**         | Thiết kế thí nghiệm kiểm soát (baseline vs improved) đã phê duyệt | `Experiment Runner` chạy độc lập các chế độ baseline/improved với biến kiểm soát cố định                      |
-| **Metric chính**              | Metric chủ đạo (ví dụ: F1-score, AUC, thời gian lead time) theo result-6.md | Module đánh giá thu thập và lưu metric này cho cả hai chế độ để so sánh                                        |
+
+| Thành phần                  | Định nghĩa đã phê duyệt (TDS)                                         | Q1/Q2 & Kiểm tra Xuất bản                                      | Diễn giải ở mức phần mềm                                                                                     |
+|-----------------------------|-----------------------------------------------------------------------|----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| **Baseline**                | Mô hình phát hiện bất thường log dựa trên học sâu, theo TDS đã phê duyệt. | Tạp chí XYZ (2024); Q1 (JCR 2024); Xuất bản chính thức; DOI:10.xxxx/xxxx | Module `baseline`: nhận log input (chuỗi sự kiện), tiền xử lý, tạo vector đặc trưng, chạy mô hình baseline, xuất độ bất thường (score) và nhãn. |
+| **Hạn chế (Limitations)**   | Hạn chế của baseline: không sử dụng ngữ cảnh lịch sử/tri thức bên ngoài, độ trễ trong phát hiện sớm còn cao. | N/A                                                            | Module `baseline` giữ nguyên thiết kế ban đầu (chỉ dựa trên dữ liệu đầu vào cục bộ, không truy vấn tri thức hoặc bộ nhớ). |
+| **Cải thiện có mục tiêu**    | Cải thiện: tích hợp LLM hoặc hệ tri thức để tăng khả năng phát hiện sớm và giảm báo động sai. | N/A                                                            | Module `improvement`: bổ sung quy trình truy xuất tri thức (knowledge retrieval) và đưa thêm ngữ cảnh vào pipeline trước khi dự đoán bất thường. |
+| **Thực nghiệm chính**       | Thiết kế so sánh: chạy song song baseline vs improved trên cùng tập dữ liệu với thông số cố định, thu thập metric. | N/A                                                            | Module `ExperimentRunner`: điều phối thực nghiệm, chạy hai chế độ `baseline` và `improved` với cùng cấu hình, seed; lưu kết quả metric để so sánh. |
+| **Metric chính**            | Các metric: Precision, Recall, F1, AUC-PR, Lead Time, Early Warning Rate, False Alarm Rate. | N/A                                                            | Module `evaluation`: tính toán các metric phát hiện bất thường và chỉ số cảnh báo sớm dựa trên kết quả dự đoán của mỗi chế độ. |
 
 ## 2. Phạm vi Phần mềm
 
-### Trong phạm vi
-- Chỉ bao gồm các thành phần cần thiết để **chạy baseline** (nạp dữ liệu, parsing, tạo cửa sổ, biểu diễn, mô hình baseline, đo lường).
-- Các thành phần để **chạy cải thiện mục tiêu** (gồm module `improvement/`: truy xuất tri thức, xây dựng ngữ cảnh, prompt, LLM nếu có).
-- **So sánh có kiểm soát**: hỗ trợ chạy hai chế độ đối chứng (`baseline` và `improved`) để so sánh công bằng.
-- **Thực hiện ablation**: chế độ `ablation` cho phép loại bỏ hoặc tắt các thành phần cải thiện để đánh giá đóng góp riêng biệt.
-- **Đánh giá Phát hiện Sớm**: tính toán chỉ số phát hiện sớm (TTD, lead time, v.v.) như yêu cầu.
-- **Lưu artifact thực nghiệm**: lưu kết quả metrics, biểu đồ, logs cho mỗi experiment run.
+**Trong phạm vi:**
 
-### Ngoài phạm vi
-- Không phát triển thành nền tảng AIOps production đầy đủ.
-- Không triển khai cho môi trường multi-tenant, clustering, HA phức tạp.
-- **Chỉ xây dựng phần mềm nghiên cứu tối thiểu** (proof-of-concept) nhưng đảm bảo **tái lập được kết quả**.
-- Không có UI, không cần REST API (trừ trường hợp cần thử nghiệm performance như Docker hay streaming là tùy chọn).
+- Triển khai đầy đủ các thành phần cần thiết để chạy baseline và cải thiện theo thiết kế đã được phê duyệt.
+- Tiền xử lý và phân tích dữ liệu log đầu vào (Dataset Loader, Log Parser, Window Generator, Representation).
+- Chạy thử nghiệm so sánh có kiểm soát giữa baseline và improved, bao gồm phép thử ablation.
+- Đánh giá phát hiện bất thường và phát hiện sớm, tính toán đầy đủ các metric cần thiết.
+- Lưu trữ tất cả artifact thí nghiệm (cấu hình, kết quả, mô hình, logs) để đảm bảo khả năng tái lập.
+
+**Ngoài phạm vi:**
+
+- Bất kỳ thành phần hoặc chức năng không có trong thiết kế kỹ thuật đã phê duyệt (không mở rộng thêm nghiên cứu mới).
+- Xây dựng nền tảng AIOps/hệ thống sản xuất (production), UI người dùng, orchestration doanh nghiệp, đa người thuê (multi-tenant) hoặc các dịch vụ quy mô lớn.
+- Tối ưu hóa hiệu năng, tích hợp với hệ thống cũ hoặc triển khai phức tạp không cần thiết cho mục tiêu nghiên cứu.
+- Triển khai tính năng tự động xử lý sự cố (remediation) hoặc các phần ngoài yêu cầu của nghiên cứu.
 
 ## 3. Kiến trúc Mã nguồn
 
-Cấu trúc thư mục mẫu:
-
-```
+Cấu trúc thư mục tối giản đề xuất:
+```text
 project/
-├── configs/        # Cấu hình YAML (dataset, baseline, improvement, model, evaluation, experiment)
-├── data/           # Raw dataset (log files)
-├── baseline/       # Cài đặt baseline (mô hình, detection)
-├── improvement/    # Cài đặt cải thiện (ví dụ: Retrieval, LLM)
-├── knowledge/      # (tùy chọn) Nạp và xử lý cơ sở tri thức
-├── retrieval/      # (tùy chọn) Module truy xuất thông tin
-├── models/         # Lưu trữ mô hình (baseline/improved)
-├── prompts/        # (tùy chọn) Templates prompt cho LLM
-├── detection/      # Kết hợp đầu ra để ra dự đoán cuối cùng
-├── evaluation/     # Tính toán metrics, phân tích kết quả
-├── experiments/    # Script chạy experiment (baseline/improved/ablation)
-├── tests/          # Unit & integration tests
-├── artifacts/      # Lưu kết quả (metrics, plots, logs)
-└── docs/           # Tài liệu SDS, hướng dẫn sử dụng
+├── configs/
+├── data/
+├── baseline/
+├── improvement/
+├── knowledge/       # thành phần tri thức (nếu sử dụng)
+├── retrieval/       # thành phần tìm kiếm tri thức (nếu sử dụng)
+├── models/
+├── prompts/         # mẫu prompt cho LLM (nếu sử dụng)
+├── detection/
+├── evaluation/
+├── experiments/
+├── tests/
+├── artifacts/
+└── docs/
 ```
 
-- **configs/**: các file YAML định nghĩa tham số, cấu trúc dữ liệu, hyperparameters. Không chứa logic; *Status: New*.
-- **data/**: chứa dữ liệu log gốc. Đầu vào cho Dataset Loader. *Status: Inherited* (từ kết quả nghiên cứu).
-- **baseline/**: chứa code mô hình baseline và logic phát hiện dị thường cơ bản. Đầu vào: embedding của log; đầu ra: scores/labels. Phụ thuộc: `models/`, `configs/`. *Status: Inherited/Modified*.
-- **improvement/**: chứa code cho cải thiện mục tiêu (ví dụ: hàm xây dựng truy vấn, gắn context, gọi LLM). Đầu vào: log representation (+context nếu có); đầu ra: features hoặc dự đoán bổ sung. Phụ thuộc: `retrieval/`, `knowledge/`, `prompts/`, `models/`. *Status: New*.
-- **knowledge/**: (nếu dùng) xử lý dữ liệu tri thức (ingestion, định nghĩa metadata, version, temporal validity). Đầu vào: file tri thức; đầu ra: objects/index dùng cho retrieval. *Status: New*.
-- **retrieval/**: xử lý truy vấn, embedding, search, ranking. Đầu vào: query (text hoặc vector); đầu ra: danh sách tài liệu liên quan. *Status: New*.
-- **prompts/**: templates prompt (system/task, chỗ chèn context). Đầu vào: thông tin cần chèn; đầu ra: prompt string. *Status: New*.
-- **models/**: lưu trữ weight/model checkpoint. *Status: New*.
-- **detection/**: hợp nhất output của baseline và cải thiện thành dự đoán cuối (ví dụ: logic kết hợp score/label). Đầu vào: score từ baseline và output cải thiện; đầu ra: dự đoán cuối. *Status: New*.
-- **evaluation/**: tính metrics. Đầu vào: predictions, ground truth; đầu ra: giá trị metrics. Phụ thuộc: `configs/` cho thông số metrics. *Status: New*.
-- **experiments/**: scripts khởi chạy experiment (xử lý config, gọi pipeline). Đầu vào: config, mode; đầu ra: lưu kết quả. *Status: New*.
-- **tests/**: tests tự động (unit test cho từng module, integration test cả pipeline). *Status: New*.
-- **artifacts/**: không code, dùng lưu kết quả/run artifacts. *Status: New*.
-- **docs/**: bao gồm SDS, README. *Status: New*.
+Mô tả trách nhiệm các module chính:
 
-**Luồng dữ liệu chính**:
-
-```
-Log Parser
-  → Window Generator
-  → Representation
-  → [Baseline Model] / [Improvement Modules]
-  → Detection (Prediction)
-  → Early Detection Evaluator
-```
-
-Nếu sử dụng retrieval/LLM:
-
-```
-Current Context (log window)
-  → Query Builder
-  → Retriever
-  → Context Builder
-  → (Kết hợp với Representation hoặc LLM)
-  → Model (Baseline/LLM)
-  → Prediction
-```
-
-Mỗi interface xác định rõ mục đích, kiểu đầu vào (schema) và đầu ra, trường bắt buộc và cách xử lý lỗi. Ví dụ, Log Parser nhận log entry raw, trả về object có timestamp; Window Generator nhận list log đã parse, trả về mảng log windows. Xử lý lỗi: nếu thiếu timestamp hoặc format sai, ghi log lỗi và có thể bỏ entry đó.
-
-Không có vòng lặp phụ thuộc (circular dependency): đường dẫn dữ liệu là tuyến tính hoặc cây.
+| Module         | Trách nhiệm                         | Đầu vào                                | Đầu ra                                | Phụ thuộc            | Trạng thái |
+|----------------|--------------------------------------|----------------------------------------|----------------------------------------|----------------------|------------|
+| configs/       | Quản lý cấu hình (dataset, model, experiment) | File YAML cấu hình                    | Đối tượng config (cấu hình đã nạp)     | PyYAML               | New        |
+| data/          | Đọc và tiền xử lý dữ liệu log       | Tập log thô, config dataset            | Sự kiện log có cấu trúc hoặc windows   | configs, pandas      | New        |
+| baseline/      | Cài đặt mô hình baseline            | Dữ liệu đã xử lý (vector)              | Score/nhãn bất thường                 | data, models         | New        |
+| improvement/   | Cài đặt mô hình cải thiện           | Dữ liệu đã xử lý, kết quả retrieval    | Score/nhãn bất thường (improved)      | baseline, retrieval, models | New  |
+| knowledge/     | Quản lý cơ sở tri thức (nếu cần)    | Nguồn tri thức ban đầu (tài liệu)       | Chỉ mục tri thức (index)             | None (hoặc DB libs)  | New        |
+| retrieval/     | Tra cứu kiến thức liên quan        | Câu truy vấn (string hoặc vector)      | Danh sách tài liệu/snippet liên quan   | knowledge, embeddings| New        |
+| models/        | Định nghĩa mô hình ML và LLM       | Thông số mô hình                       | Mô hình đã khởi tạo (graph, state)     | Framework ML (Torch)| New        |
+| prompts/       | Quản lý mẫu prompt cho LLM         | Template prompt (string)               | Prompt hoàn chỉnh (string)            | None                 | New        |
+| detection/     | Ra quyết định nhãn anomalies       | Score bất thường, ngưỡng              | Nhãn phát hiện anomalies (True/False) | baseline, improvement | New       |
+| evaluation/    | Tính toán metric đánh giá         | Nhãn dự đoán, nhãn chuẩn               | Các giá trị metric (Precision, F1, ...) | NumPy, scikit-learn | New        |
+| experiments/   | Điều phối và ghi kết quả thí nghiệm| Config thí nghiệm, data đầu vào       | File logs, báo cáo, mô hình, metrics    | All modules         | New        |
+| tests/         | Unit và integration test           | Code và dữ liệu thử nghiệm nhỏ        | Báo cáo test (pass/fail)             | pytest/unittest     | New        |
+| artifacts/     | Lưu trữ kết quả thí nghiệm        | Đầu ra của modules (model, logs, metrics) | Thư mục artifact chứa các file    | experiments         | New        |
+| docs/          | Tài liệu kỹ thuật, README          | -                                      | Tài liệu Markdown/PDF               | -                   | New        |
 
 ## 4. Đặc tả Module và Interface
 
-| Module                | Trách nhiệm                                                 | Đầu vào               | Đầu ra                       | Phụ thuộc               | Status      |
-|-----------------------|-------------------------------------------------------------|-----------------------|------------------------------|-------------------------|-------------|
-| **Dataset Loader**    | Đọc nạp dữ liệu log thô, chia train/test                     | File log raw          | DataFrame/List log entries   | configs (dataset)       | New         |
-| **Log Parser**        | Xử lý từng entry log (tách fields, chuẩn hóa timestamp)      | Một log entry thô     | Structured log entry         | Dataset Loader          | New         |
-| **Window Generator**  | Tạo các cửa sổ liên tiếp từ log đã parse                     | Danh sách log entries | List of log windows          | Log Parser              | New         |
-| **Representation**    | Biểu diễn cửa sổ log (embedding, feature extraction)        | Một log window        | Vector đặc trưng (embedding) | Window Generator        | New         |
-| **Core Model (Baseline)** | Mô hình phát hiện bất thường chuẩn (ví dụ: RNN)         | Log embedding         | Anomaly score hoặc label     | models, configs (baseline) | Inherited |
-| **Targeted Improvement** | Thành phần cải thiện (LLM, retrieval)                    | Log embedding + context | Feature bổ sung hoặc score | retrieval, knowledge, prompts | New |
-| **Knowledge Loader**  | Nạp cơ sở tri thức (logs lịch sử, incidents)                 | File tri thức         | Objects/Index tri thức       | configs (knowledge)     | New         |
-| **Index/Embedding**   | Xây dựng index ANN cho tri thức                              | Knowledge objects     | ANN index                    | Knowledge Loader        | New         |
-| **Query Builder**     | Tạo truy vấn (embedding/text) từ ngữ cảnh log hiện tại       | Log window/context    | Query vector hoặc text       | Representation, prompts | New         |
-| **Retriever**         | Tìm kiếm tài liệu liên quan trong tri thức                   | Query                 | Ranked documents             | Index/Embedding        | New         |
-| **Context Builder**   | Kết hợp tài liệu truy xuất với context hiện tại (truncation) | Documents, log window | Kết quả context tích hợp     | Retriever, prompts     | New         |
-| **LLM Adapter**       | Gửi prompt + context đến mô hình ngôn ngữ, nhận output        | Prompt, Context text  | Raw LLM output (text)        | prompts, Context Builder | New        |
-| **Output Parser**     | Chuyển output của LLM thành dự đoán hoặc features            | Raw LLM output        | Anomaly score/label          | LLM Adapter            | New         |
-| **Detection**         | Kết hợp output baseline và improvement để ra quyết định cuối | Baseline score/label, Improvement output | Final score/label | Core Model, Improvement | New |
-| **Metrics**           | Tính toán các chỉ số đánh giá (Precision, Recall, v.v.)      | Predictions, GT labels| Metric values               | Detection output, configs | New      |
-| **Result Aggregator** | Tổng hợp kết quả nhiều runs (mean, std)                     | Metrics per run       | Báo cáo tổng hợp             | Metrics                | New         |
-| **Experiment Runner** | Quản lý chạy experiment theo mode (baseline, improved, etc.)  | Config, seed, mode    | Lưu experiment results       | All modules            | New         |
+**Luồng chính:** 
+```text
+Log Parser 
+→ Window Generator 
+→ Representation 
+→ [Baseline Model / Improvement Model] 
+→ Detection (prediction) 
+→ Early Detection Evaluator
+```
 
-**Luồng interface chính**:
-- **Parser → Window → Representation → Baseline/Core Model**: pipeline cơ bản xử lý log và cho đầu ra anomaly score.
-- **Parser → Window → Representation → Improvement Modules → Detection**: pipeline có cải thiện (nhúng retrieval/LLM), đầu ra tích hợp vào detection.
-- **Prediction → Early Detection Evaluator**: module đánh giá sớm nhận output cuối để tính metrics liên quan.
+**Nếu có truy xuất tri thức (retrieval):**
+```text
+(Log Window hiện tại) 
+→ Query Builder 
+→ Retriever 
+→ Context Builder 
+→ LLM Adapter (Foundation Model)
+```
 
-Ví dụ interface cụ thể:  
-- **Log Parser → Window Generator**: Mục đích tạo windows từ log. Đầu vào: list log entries (có timestamp). Đầu ra: list window (mỗi window là list log). Bắt buộc: timestamp hợp lệ; Lỗi: nếu thiếu timestamp, bỏ entry đó hoặc dừng pipeline.  
-- Các interface khác được định nghĩa tương tự (dữ liệu đầu vào/ra là JSON, numpy array, v.v., và xử lý ngoại lệ rõ ràng).
+**Mô tả chi tiết một số module/ giao diện quan trọng:**
 
-Không có dependency vòng tròn trong thiết kế module.
+| Module                  | Trách nhiệm                              | Đầu vào                                       | Đầu ra                                          | Phụ thuộc         | Trạng thái |
+|-------------------------|------------------------------------------|-----------------------------------------------|------------------------------------------------|--------------------|------------|
+| Dataset Loader          | Đọc, phân chia tập log theo config        | Cấu hình (đường dẫn, seed, split)             | Tập dữ liệu (raw logs và nhãn)                  | configs           | New        |
+| Log Parser              | Phân tích cú pháp log thô thành sự kiện   | Dòng log (string)                             | Dict {timestamp, level, message, ...}           | data              | New        |
+| Window Generator        | Gom nhóm sự kiện thành các cửa sổ thời gian | Danh sách các sự kiện (có timestamp)          | Danh sách cửa sổ (mỗi cửa sổ: list of events)   | data              | New        |
+| Representation          | Chuyển cửa sổ sự kiện thành vector số     | Cửa sổ log (list of events)                   | Vector đặc trưng (ndarray/tensor)               | models            | New        |
+| Baseline Model          | Dự đoán bất thường dựa trên vector        | Vector đặc trưng (ndarray)                    | Score bất thường (float)                        | models            | New        |
+| Improvement Model       | Cải thiện dự đoán bằng context tri thức    | Vector đặc trưng (+ context nếu có)            | Score hoặc nhãn bất thường (float/label)        | baseline, models, retrieval | New |
+| Query Builder           | Tạo truy vấn từ cửa sổ log hiện tại       | Cửa sổ log hiện tại (list of events)          | Truy vấn (string hoặc vector)                   | data              | New        |
+| Retriever               | Tìm kiếm thông tin liên quan từ tri thức   | Truy vấn (string hoặc vector)                 | Danh sách top-k tài liệu/snippet liên quan      | knowledge, embeddings | New     |
+| Context Builder         | Kết hợp kết quả truy xuất thành context    | Danh sách tài liệu liên quan                  | Context (string)                                | -                 | New        |
+| LLM Adapter             | Giao tiếp với mô hình ngôn ngữ lớn         | Prompt hoàn chỉnh (string)                    | Phản hồi text (string)                          | Foundation Model API| New      |
+| Output Parser           | Trích xuất nhãn/score từ output LLM       | Phản hồi text (string)                        | Nhãn/score (struct, JSON)                       | -                 | New        |
+| Early Detection Evaluator | Tính toán metric cảnh báo sớm          | Thời điểm phát hiện và thời điểm bất thường    | Chỉ số Lead Time, Early Warning Rate, ...       | evaluation        | New        |
 
-## 5. Tách biệt Baseline/Cải thiện
-- **Chế độ `baseline`**: chỉ chạy pipeline baseline (data→parser→representation→baseline model→evaluation).
-- **Chế độ `improved`**: bao gồm cả baseline và các thành phần cải tiến mục tiêu. 
-- **Chế độ `ablation`**: tắt bỏ hoặc thay đổi các thành phần cải thiện (ví dụ: `use_retrieval=false`) để đánh giá tác động.
-- Cải thiện **không làm thay đổi ngầm metric**: cả hai chế độ dùng chung định nghĩa metric và quy trình đánh giá để so sánh công bằng.
-- Module `Experiment Runner` chuyển đổi mode (qua config) và đảm bảo giữ cố định tất cả biến không phải mục tiêu thí nghiệm.
+**Mỗi interface quan trọng:**
+
+- **Dataset Loader:** Đọc dữ liệu log từ file theo cấu hình. Input: cấu hình dataset (đường dẫn file, seed); output: dữ liệu raw logs và nhãn (list của event). Báo lỗi nếu không tìm thấy file hoặc cấu hình sai định dạng.
+- **Log Parser:** Input là một dòng log (string), output là dictionary với các trường như `timestamp`, `level`, `message`. Yêu cầu `timestamp` hợp lệ; nếu không parse được, ghi log và bỏ qua.
+- **Window Generator:** Input là danh sách sự kiện đã parse, đã sắp xếp theo thời gian. Xuất ra các window (list of events) theo tham số thời gian/kích thước window. Nếu không đủ dữ liệu, trả ra list rỗng.
+- **Representation:** Input là một cửa sổ sự kiện (list), output là vector đặc trưng (numpy array/tensor). Yêu cầu: sự kiện phải có trường cần thiết (message,...). Nếu embedding/model chưa tải, raise exception.
+- **Baseline Model:** Input là vector đặc trưng (ndarray), output là score bất thường (float). Yêu cầu: shape đúng; nếu dimension không khớp, throw error.
+- **Improvement Model (LLM Pipeline):** Input là vector đặc trưng và context (nếu có), output là score/nhãn bất thường. Gồm các bước Query Builder → Retriever → Context Builder → LLM Adapter → Output Parser. Nếu truy xuất thất bại, bỏ qua context.
+- **Query Builder:** Input: cửa sổ log hiện tại, output: câu truy vấn (string) hoặc embedding vector. Nếu tạo query lỗi, báo cảnh báo.
+- **Retriever:** Input: câu truy vấn (text hoặc vector), output: danh sách các snippet tài liệu liên quan. Nếu không tìm thấy, trả về list rỗng.
+- **Context Builder:** Input: danh sách tài liệu liên quan, output: một chuỗi ngữ cảnh (string). Cắt bỏ nếu quá dài.
+- **LLM Adapter:** Input: prompt (string), output: phản hồi của LLM (string). Bắt lỗi timeout/rate-limit, thử lại nếu cần.
+- **Output Parser:** Input: text output của LLM, output: nhãn/score (struct). Nếu định dạng sai, trả về default hoặc báo lỗi.
+- **Early Detection Evaluator:** Input: thời điểm cảnh báo và thời điểm thực bất thường; output: chỉ số thời gian lead time, tỷ lệ cảnh báo sớm. Nếu không phát hiện, lead time = 0.
+
+## 5. Tách biệt Baseline và Cải thiện
+
+- **baseline:** Chạy toàn bộ pipeline của phương pháp baseline (mô hình gốc) mà không thêm thành phần cải thiện nào. Dùng làm tham chiếu.
+- **improved:** Chạy pipeline baseline kết hợp với thành phần cải thiện (retrieval, LLM). Các cấu hình khác như baseline.
+- **ablation:** Chạy pipeline nhưng tắt một phần của cải thiện (ví dụ không dùng LLM hoặc không dùng retrieval) để đánh giá đóng góp riêng.
+  
+**Lưu ý:** Không được thay đổi định nghĩa hay tính toán các metric (Precision, Recall, F1, lead time, v.v.) giữa các chế độ, để đảm bảo so sánh công bằng.
 
 ## 6. Đặc tả Cấu hình
-Các file YAML cấu hình:
 
-- **dataset.yaml**:  
-  - `dataset_path` (string): đường dẫn đến dữ liệu log, default: `./data/logs`, fixed.  
-  - `train_split` (float 0–1): tỉ lệ dữ liệu train/test, default: 0.8, tunable.  
-  - `window_size` (int): số log trong 1 window, default: 50, tunable.  
-  - `window_stride` (int): bước trượt của window, default: 1, fixed.  
-  - `timestamp_field` (string): tên trường thời gian, default: `timestamp`, fixed.  
-- **baseline.yaml**:  
-  - `model_type` (string): loại mô hình (e.g., `LSTM`), default: `LSTM`, fixed.  
-  - `hidden_size` (int): kích thước ẩn, default: 128, tunable.  
-  - `learning_rate` (float): tốc độ học, default: 0.001, tunable.  
-  - `epochs` (int): số epoch, default: 20, fixed.  
-  - `batch_size` (int): default: 64, tunable.  
-- **improvement.yaml**:  
-  - `use_retrieval` (bool): có dùng retrieval không, default: False, tunable.  
-  - `top_k` (int): số tài liệu truy xuất, default: 5, tunable.  
-  - `use_llm` (bool): có dùng LLM không, default: False, tunable.  
-  - `llm_model` (string): tên mô hình LLM (vd. `gpt-3.5-turbo`), default: `gpt-3.5-turbo`, fixed.  
-  - `prompt_version` (string): phiên bản prompt, default: `v1`, fixed.  
-- **model.yaml**:  
-  - `seed` (int): random seed, default: 42, fixed.  
-  - `device` (string): `cpu` hoặc `cuda`, default: `cuda`, fixed.  
-  - `save_interval` (int): số epoch giữa mỗi lần lưu model, default: 5, fixed.  
-- **retrieval.yaml** (nếu dùng retrieval):  
-  - `embedding_model` (string): mô hình embedding (vd. `all-MiniLM-L6-v2`), default: `all-MiniLM-L6-v2`, fixed.  
-  - `index_type` (string): `FAISS` hoặc `Annoy`, default: `FAISS`, fixed.  
-  - `max_context_length` (int): giới hạn token context, default: 512, tunable.  
-- **evaluation.yaml**:  
-  - `metrics` (list): các metrics tính toán (vd. `[precision, recall, f1, auc]`), fixed.  
-  - `early_metrics` (list): metrics phát hiện sớm (vd. `[TTD, lead_time]`), fixed.  
-- **experiment.yaml**:  
-  - `mode` (string): `baseline`/`improved`/`ablation`, default: `baseline`, fixed.  
-  - `runs` (int): số lần lặp experiment, default: 1, fixed.  
-  - `random_seed` (int): seed experiment, default: 42, tunable.  
-  - `log_level` (string): `INFO`/`DEBUG`, default: `INFO`, fixed.  
-
-**Trạng thái tham số**:  
-- **Tham số cố định**: seed, thiết lập model, modes không thay đổi khi chạy lại (fixed).  
-- **Tham số tunable**: hyperparameters (learning_rate, hidden_size, window_size, top_k,…), được điều chỉnh qua validation.  
-- **Biến thực nghiệm**: mode chạy, số runs, bật/tắt cải tiến.
+Các file cấu hình YAML chính:
+- **dataset.yaml:** Cấu hình về dữ liệu.
+  - `data_path` (string, default `"./data/logs/"`): Đường dẫn tới thư mục chứa log.
+  - `seed` (int, default 42): Hạt giống ngẫu nhiên.
+  - `split_ratio` (float, default 0.7): Tỷ lệ train/validation.
+- **baseline.yaml:** Thông số mô hình baseline.
+  - `learning_rate` (float, default 0.001): Tốc độ học (tunable).
+  - `batch_size` (int, default 32): Kích thước batch (tunable).
+  - `threshold` (float, default 0.5): Ngưỡng phân loại bất thường (tunable).
+- **improvement.yaml:** Thông số cho phần cải thiện.
+  - `top_k` (int, default 5): Số tài liệu truy xuất (tunable).
+  - `model_name` (string, default `"gpt-3.5-turbo"`): Phiên bản LLM sử dụng.
+- **model.yaml:** Thông số mô hình chung.
+  - `hidden_dim` (int, default 128): Kích thước ẩn của mô hình (tunable).
+- **retrieval.yaml:** Cấu hình cho thành phần truy xuất.
+  - `embedding_model` (string, default `"all-MiniLM-L6-v2"`): Mô hình embedding văn bản.
+  - `index_type` (string, default `"HNSW"`): Loại index tìm kiếm vector (ví dụ Annoy/FAISS).
+- **evaluation.yaml:** Cấu hình đánh giá.
+  - `metrics` (list, default `["precision","recall","f1"]`): Các metric cần tính.
+  - `lead_time_threshold` (float, default 0.0): Ngưỡng tính lead time.
+- **experiment.yaml:** Cấu hình thí nghiệm.
+  - `num_runs` (int, default 10): Số lần lặp lại mỗi thử nghiệm (biến thực nghiệm).
+  - `output_dir` (string, default `"./artifacts/"`): Thư mục lưu kết quả thí nghiệm.
+  
+Mỗi tham số trên bao gồm: kiểu dữ liệu, giá trị mặc định, mô tả ngắn, trạng thái (Fixed/Tunable).
 
 ## 7. Thiết kế LLM / Prompt / Model
-- **Prompt quản lý**: Định nghĩa system/task prompt và chỗ chèn context bằng template. Ví dụ: prompt cơ bản “Dựa trên ngữ cảnh log sau, hãy dự đoán xem có dị thường hay không:” với chỗ `{context}`.
-- **Context insertion**: Module `Context Builder` chèn ngữ cảnh (từ Retriever) vào template prompt. Chừa chỗ `{context}` hoặc sử dụng JSON Schema để đảm bảo định dạng đầu ra.
-- **Schema đầu ra**: Định dạng mong đợi từ LLM (ví dụ JSON: `{"anomaly": true, "confidence": 0.9}`) để `Output Parser` dễ xử lý.
-- **Phiên bản prompt/model**: Ghi nhận `prompt_version` và `llm_model` trong cấu hình và lưu cùng artifacts để đảm bảo truy vết.
-- **Sampling/Temperature**: Nếu LLM generative, thiết lập `temperature` (ví dụ mặc định 0.7) trong `improvement.yaml`.
-- **So sánh công bằng**: Nếu baseline không dùng LLM, thì improved bật `use_llm=true`; các tham số như model LLM, prompt cho hai chế độ giống nhau (nếu applicable) để so sánh công bằng.
-- Nếu sử dụng Foundation Model (LLM):
-  - Định nghĩa interface chung (e.g., class `LLMAdapter`) để tách biệt provider (OpenAI, local) và adapter (logic gọi API).
-  - Provider/Adapter rõ ràng: Adapter gọi API, provider lưu key hoặc endpoint.
-  - Lưu metadata model (tên, version) trong config và artifact.
 
-## 8. Tính Toàn vẹn Dữ liệu và Thời gian
-- **Bảo toàn thứ tự thời gian**: Đảm bảo logs được sắp xếp tăng dần theo timestamp. Thông số:
-  - `timestamp`: định dạng ISO hoặc epoch, dùng để sắp xếp log.
-  - `observation_time`: thời điểm bắt đầu quan sát (ví dụ bắt đầu window).
-  - `prediction_time`: thời điểm kết thúc window (thời điểm đưa ra dự đoán).
-  - `anomaly_time`: thời điểm thực sự xảy ra sự cố (ground truth).
-- **Chỉ dùng thông tin hiện có**: Mọi truy xuất hoặc thuật toán chỉ nhận đầu vào là thông tin đã có tại thời điểm `prediction_time`.
-- **Ngăn chặn rò rỉ tương lai**:
-  - Window Generator không chứa log sau `prediction_time`.
-  - Retriever chỉ trả về tài liệu có `timestamp` ≤ `prediction_time`.
-  - Kiểm tra dataset split chặt chẽ: training/validation/test không có overlap.
-- **Tích hợp kiểm tra**: Ở mỗi bước, validate không sử dụng thông tin future. Test case kiểm tra future leakage phải có trong test suite.
+- **System Prompt:** Mẫu hướng dẫn chung (ví dụ: "Bạn là chuyên gia anomally detection, hãy phân tích log...").
+- **User Prompt / Context:** Kết hợp log window hiện tại và kiến thức liên quan (nếu có) tạo prompt đầy đủ.  
+- **Output Schema:** Yêu cầu LLM trả về định dạng JSON (ví dụ: `{"anomaly_score": <float>, "is_anomaly": <bool>}`) để dễ parse.  
+- **Phiên bản:** Ghi rõ phiên bản LLM (ví dụ GPT-3.5, GPT-4) và version của prompt template (theo file).  
+- **Tham số:** Ví dụ đặt `temperature=0` cho determinism; `top_p` hoặc sampling chỉ dùng khi cần khảo sát.  
+- **Model Interface:** Module `LLM Adapter` nhận prompt (string) và metadata (model version), trả về phản hồi text (string). Tách biệt rõ với phần provider LLM (OpenAI, HF).  
+- **Fairness:** Cả baseline và improved (nếu dùng LLM) sử dụng cùng model/prompt hoặc config đầu vào giống nhau để so sánh công bằng (nếu TDS không yêu cầu khác biệt).
+
+## 8. Toàn vẹn Dữ liệu và Thời gian
+
+- **Bảo toàn thứ tự thời gian:** Dữ liệu log luôn sắp xếp tăng dần theo `timestamp`; không shuffle sự kiện.  
+- **Định nghĩa thời điểm:** 
+  - `observation_time`: thời điểm quan sát dữ liệu cuối cùng để dự đoán.  
+  - `prediction_time`: thời điểm mô hình đưa ra dự đoán (thường = `observation_time`).  
+  - `anomaly_time`: thời điểm thực sự xảy ra sự kiện bất thường (ground truth).  
+- **Không leak tương lai:** 
+  - Không sử dụng log hoặc sự kiện xảy ra sau `prediction_time`.  
+  - Khi chia train/test, đảm bảo ngăn ngừa mọi thông tin log hoặc nhãn tương lai lọt vào training.  
+- **Truy xuất/Memory:** Nếu dùng tri thức hoặc bộ nhớ, chỉ lấy thông tin có sẵn tại hoặc trước `prediction_time`. Bảo vệ chống: lộ thông tin log tương lai, lộ nhãn sự cố tương lai, lộ data test.
 
 ## 9. Phần mềm Knowledge / Retrieval
 
-### Knowledge
-- **Ingestion**: Module `Knowledge Loader` đọc và xử lý dữ liệu tri thức (historical incidents, docs kỹ thuật). Chuẩn hóa định dạng.
-- **Metadata & Version**: Gắn nhãn thời gian, phiên bản, nguồn gốc cho mỗi tài liệu tri thức.
-- **Temporal validity**: Mỗi document có nhãn hiệu lực (ví dụ chỉ sử dụng trước một ngày nhất định). Quy định chỉ dùng tri thức phù hợp mốc dự đoán.
+**Knowledge (Tri thức):**  
+- **Ingestion:** Nạp dữ liệu tri thức (ví dụ: các template log, tài liệu hướng dẫn) từ file hoặc cơ sở tri thức.  
+- **Metadata & Version:** Gắn nhãn version hoặc timestamp cho từng mục tri thức; duy trì thông tin thời gian hiệu lực.  
+- **Temporal Validity:** Nếu tri thức thay đổi theo thời gian, lưu trữ lịch sử và chỉ sử dụng các entry trước thời điểm dự đoán.
 
-### Retrieval
-- **Query**: Xây truy vấn từ ngữ cảnh hiện tại (có thể là text hoặc embedding từ log context).
-- **Embedding**: Mã hóa query và corpus tri thức bằng mô hình embedding.
-- **Search**: Tìm kiếm trong index (FAISS/Annoy) để lấy những vector gần nhất.
-- **Ranking**: Sắp xếp kết quả theo độ tương đồng (cosine).
-- **Filtering**: Loại bỏ tài liệu không phù hợp (vd. khoảng thời gian ngoài mốc, nội dung không liên quan).
-- **Top-k**: Lấy `k` tài liệu hàng đầu (cấu hình `top_k`).
+**Retrieval (Tra cứu):**  
+- **Query:** Tạo câu truy vấn từ log window hiện tại (ví dụ trích keywords hoặc embedding của log event).  
+- **Embedding:** Mã hoá câu truy vấn và tri thức vào vector (nếu dùng search vector).  
+- **Search/Ranking:** Tìm kiếm top-k các mục tri thức liên quan (theo độ tương đồng cosine hay token).  
+- **Filtering:** Lọc kết quả: chỉ chọn mục có độ liên quan vượt ngưỡng (similarity > thresh).  
+- **Top-k:** Chỉ lấy k mục có liên quan nhất (được cấu hình trong `retrieval.yaml`).
 
-### Context
-- **Ordering**: Sắp xếp thông tin theo tính liên quan (ví dụ: gần nhất thời gian, hoặc dựa trên score).
-- **Relevance filtering**: Trong tài liệu retrieved, loại bỏ các phần không liên quan (ví dụ cắt câu).
-- **Truncation**: Nếu ngữ cảnh vượt kích thước tối đa (`max_context_length` tokens), cắt bớt giữ thông tin quan trọng nhất.
-- **Giới hạn context**: Đảm bảo tổng tokens không vượt giới hạn của LLM/model; hạn chế kích thước để không quá lớn.
+**Context (Ngữ cảnh):**  
+- **Ordering:** Sắp xếp các mục retrieve theo mức độ liên quan.  
+- **Relevance filtering:** Loại bỏ mục không liên quan.  
+- **Truncation:** Cắt bớt context nếu vượt quá giới hạn token của LLM; ưu tiên giữ thông tin hữu ích.  
+- **Context limit:** Tuân thủ giới hạn prompt của LLM (ví dụ 4096 token).
 
-## 10. Đặc tả Phần mềm Thực nghiệm
-Thiết kế **Experiment Runner** để quản lý các kịch bản:
+## 10. Đặc tả Thực nghiệm
 
-- **A — Baseline**: Chỉ chạy pipeline baseline; lưu metrics.
-- **B — Improved**: Chạy pipeline bao gồm cải thiện; lưu metrics.
-- **C — Ablation**: Tắt từng cải thiện cụ thể (ví dụ `use_llm=false` hoặc `use_retrieval=false`); chạy và so sánh.
-- **D — Robustness**: (Nếu có yêu cầu) thêm biến thể như noise trong log, thay đổi độ dài, để đánh giá độ ổn định.
-- **E — Efficiency**: (Nếu có) đánh giá chi phí (token, thời gian) khi cải tiến được bật.
+**Chế độ thử nghiệm:**  
+- **A – Baseline:** Chạy pipeline baseline độc lập, thu metrics tham chiếu.  
+- **B – Improved:** Chạy pipeline kết hợp baseline + cải thiện, so sánh với baseline.  
+- **C – Ablation:** Vô hiệu hóa một phần của cải thiện (ví dụ LLM hoặc retrieval) để đánh giá đóng góp.  
+- **D – Robustness (nếu cần):** Thử nghiệm với dữ liệu nhiễu, điều chỉnh params để kiểm tra độ ổn định.  
+- **E – Efficiency (nếu cần):** Đánh giá hiệu năng (latency, chi phí) khi sử dụng cải thiện (như LLM) nặng.
 
-Mỗi run ghi lại: 
-- **Experiment ID**, cấu hình (config files dùng, mode, seed), phiên bản dataset/model, thời gian bắt đầu/kết thúc, metrics (raw và tổng hợp), artifacts (mô hình, plots, logs).
-
-Artifact này cho phép tái lập chạy thử nghiệm đầy đủ.
+**Luồng:** Mỗi run thí nghiệm:  
+- Sinh experiment ID, ghi lại config (config yaml, seed).  
+- Chạy pipeline theo chế độ (Baseline/Improved/Ablation).  
+- Lưu artifact: model (nếu huấn luyện), logs, tất cả metric.  
+- Lặp lại `num_runs` lần (theo `experiment.yaml`) để lấy trung bình và độ lệch.
 
 ## 11. Phần mềm Đánh giá
-**Sử dụng chung protocol** đánh giá baseline và improved:
 
-- **Phát hiện (Detection)**: 
-  - *Precision*: Tỉ lệ dự đoán đúng (TP) trên tổng dự đoán dương (TP+FP). (Precision = TP/(TP+FP))
-  - *Recall*: Tỉ lệ phát hiện đúng (TP) trên tổng thực sự dương (TP+FN). (Recall = TP/(TP+FN))
-  - *F1-Score*: Trung bình điều hòa của precision và recall.
-  - *PR-AUC*: Diện tích dưới đường cong Precision-Recall (ưu tiên khi mất cân bằng).
-  - *ROC-AUC*: Diện tích dưới đường cong ROC (tùy mức phù hợp).
-- **Phát hiện Sớm (Early Detection)**:
-  - *Time-to-Detection (TTD)*: Thời gian từ anomaly xảy đến khi hệ thống cảnh báo.
-  - *Detection Lead Time*: Thời gian cảnh báo trước khi sự cố thực sự xảy ra.
-  - *Early Warning Rate*: Tỉ lệ cảnh báo đúng trước khi lỗi.
-  - *Detection Before Failure*: Phần trăm lỗi được cảnh báo trước khi xảy ra.
-  - *False Alarm Rate*: Tỉ lệ cảnh báo sai (FP/ tổng window).
-- **Hiệu quả (Efficiency)**:
-  - *Latency*: Thời gian xử lý đầu vào thành dự đoán (ms).
-  - *Token Cost*: (Nếu dùng LLM) số token chi phí, hoặc ước lượng chi phí.
-  - *Compute*: Thời gian CPU/GPU sử dụng (sec).
-  - *Memory*: Bộ nhớ (RAM/VRAM) dùng.
-  - *Throughput*: Số window hoặc log xử lý mỗi giây.
+**Metrics Phát hiện bất thường:**  
+- *Precision*, *Recall*, *F1-score*.  
+- *AUC-PR* (và có thể *ROC-AUC* nếu áp dụng).  
 
-Các metrics đều được tính toán và lưu dưới dạng số (với định nghĩa rõ trong docs). Precision, recall định nghĩa theo chuẩn (tham khảo Azure Anomaly Detector).
+**Metrics Phát hiện sớm:**  
+- **Lead Time:** Trung bình thời gian giữa cảnh báo và sự kiện bất thường.  
+- **Early Warning Rate:** Tỷ lệ sự kiện được cảnh báo trước khi xảy ra.  
+- **False Alarm Rate:** Tỷ lệ cảnh báo sai trên tổng các cảnh báo.  
+- **Detection Before Failure:** Phần trăm sự kiện phát hiện trước khi fault xảy ra.
+
+**Hiệu quả & Chi phí:**  
+- Thời gian suy luận (latency) của mô hình (ms).  
+- *Throughput* (số log xử lý/giây).  
+- Tài nguyên sử dụng (bộ nhớ, GPU).  
+- Chi phí token (nếu dùng LLM).  
+
+Module `evaluation` tính toán đồng thời các chỉ số trên cho cả baseline và improved, theo cùng giao thức.
 
 ## 12. Logging và Xử lý Lỗi
-- **Logging** (cho nghiên cứu, không prod): 
-  - Ghi lại log experiment (timestamp bắt đầu/kết thúc, mode, config).
-  - Log hoạt động các module (ví dụ: "Loaded 1000 logs", "Model inference done", "Prompt sent to LLM").
-  - Ghi metrics kết quả cuối mỗi run.
-  - Log errors/exceptions (có stack trace).
-  - Lưu log ở định dạng có timestamp, dễ filter (JSON hoặc text).
-- **Xử lý lỗi**:
-  - *Input không hợp lệ*: Dữ liệu sai format, báo lỗi rõ trước khi chạy. 
-  - *Dữ liệu thiếu*: nếu mất field quan trọng (vd. timestamp), bỏ entry đó với cảnh báo hoặc dừng nếu nghiêm trọng.
-  - *Retrieval failure*: nếu không lấy được tài liệu, có thể tiếp tục với context rỗng và log cảnh báo.
-  - *Model failure*: NaN, divergence khi train/inference; ghi log và dừng experiment.
-  - *Timeout/API limit*: khi gọi LLM quá giới hạn; catch exception, ghi log, tùy chọn retry hoặc bỏ qua run.
-  - *Output không hợp lệ*: nếu parse kết quả LLM không đúng định dạng, ghi lỗi, có thể bỏ run đó.
 
-## 13. Chiến lược Kiểm thử
-- **Unit Test**:
-  - *Log Parser*: test parsing với log mẫu có timestamp khác nhau, kiểm tra kết quả đầu ra.
-  - *Window Generator*: test tạo window với các cấu hình khác nhau.
-  - *Retriever/Context*: giả lập query và documents, kiểm tra kết quả chọn lọc.
-  - *Detection & Metrics*: cho input giả, kiểm tra precision/recall đúng.
-- **Integration Test**:
-  - *Data → Baseline*: pipeline end-to-end với data mẫu, so sánh output với kết quả biết trước.
-  - *Data → Improvement*: pipeline với improvement đơn giản (vd. retrieval trả context tĩnh).
-  - *Retrieval → LLM*: test từng bước nối tiếp khi kết hợp tri thức và LLM.
-  - *Model → Detection*: test kết hợp output từ model và output cải thiện.
-- **End-to-End**:
-  - Thực hiện một experiment run hoàn chỉnh (baseline/improved) trên tập nhỏ, đảm bảo không lỗi và output hợp lý.
-- **Regression**:
-  - Khi thay đổi code, chạy lại test suite và so sánh metrics với phiên bản trước (trong tolerance).
-  - Kiểm tra không có thay đổi ngầm đối với baseline metrics nếu cải thiện không bật.
-- **Research Validity**:
-  - Sử dụng cùng data split, preprocess.
-  - Cùng metric definitions.
-  - Kiểm tra không future leakage (xem mục 8).
-  - Đảm bảo rằng các phép tính là ổn định (ví dụ, fix seed, đủ runs).
+- **Logging:** 
+  - Ghi log chi tiết phục vụ nghiên cứu (không phải logging production): cấu hình chạy (config), seed, thời gian bắt đầu/kết thúc, status.  
+  - Lưu logs của từng module: parser, retrieval, LLM, evaluation, including errors.  
+  - Lưu output metrics, losses và warnings.  
+  - Định dạng logs có cấu trúc (JSON hoặc text rõ ràng) để dễ truy vết.
 
-## 14. Quản lý Artifact và Phiên bản
-- **Lưu artifact** cho mỗi experiment run:
-  - Cấu hình đã dùng (file YAML).
-  - Phiên bản source code (git commit hash).
-  - Identifier của dataset (tên file, checksum).
-  - Model versions (ví dụ `baseline_v1`, `improved_v2`).
-  - Prompt version (vd. `v1`).
-  - Retrieval settings (embedding model, index version).
-  - Metrics (raw logs, aggregated).
-  - Các plots/bảng thống kê kết quả.
-  - Logs chi tiết của run.
-- **Version control**:
-  - Code quản lý bởi Git; ghi chú tag hoặc commit cho từng milestone.
-  - Dataset reference: ghi checksum hoặc tag repo chứa dataset.
-  - Cấu hình baseline/improvement version (nếu lưu configs theo version).
-  - Model/prompt version (lưu checkpoint với tag).
-  - Kết quả experiment: mỗi run có ID cố định, không sửa sau đó.
-- **Reproducibility**:
-  - Không chỉnh sửa run đã lưu; nếu cần thay đổi config, tạo run mới.
-  - Đảm bảo tất cả dữ liệu để chạy lại (code + config + data) đều khả dụng.
+- **Error Handling:** 
+  - **Input không hợp lệ:** Nếu dữ liệu thiếu/trong sai format, ghi lỗi và skip hoặc terminate tùy mức độ nghiêm trọng.  
+  - **Missing data:** Nếu file thiếu, raise error và dừng an toàn.  
+  - **Retrieval failure:** Nếu không tìm được tri thức, log cảnh báo và tiếp tục không có context.  
+  - **LLM/API lỗi:** Bắt lỗi timeout, rate-limit, thực hiện retry/backoff; nếu vẫn lỗi, báo experiment thất bại.  
+  - **Output sai định dạng:** Nếu output LLM hoặc model trả về không parse được, log error và bỏ kết quả đó.  
+  - **Timeout/Rate-limit:** Áp dụng timeout cho các hàm gọi mạng; giới hạn retry.  
+  - **General Exception:** Bắt exception không lường trước, ghi log chi tiết (stack trace), đảm bảo hệ thống không crash.
+
+## 13. Kiểm thử
+
+- **Unit Test:** Kiểm thử đơn vị cho các thành phần: 
+  - Parser log, Window Generator, embedding, các hàm xử lý text.  
+  - Retriever (search index), Context Builder, Prompt Builder.  
+  - Mô hình tính score, threshold.  
+  - Hàm tính metric (precision, recall, lead time).  
+
+- **Integration Test:**  
+  - Dữ liệu → pipeline Baseline (kiểm tra toàn bộ flow baseline).  
+  - Dữ liệu → pipeline Improved (kiểm tra kèm module cải thiện).  
+  - Tích hợp retrieval với model, model với detection.  
+
+- **End-to-End Test:** Thực hiện một experiment hoàn chỉnh: từ raw logs đầu vào đến báo cáo kết quả (metrics) cho cả baseline và improved.
+
+- **Regression Test:** Sau mỗi thay đổi code: 
+  - Đảm bảo kết quả baseline không đổi (với cùng seed) trong sai số cho phép.  
+  - Giám sát metric; nếu deviate lớn, kiểm tra lỗi.
+
+- **Validity Check:**  
+  - Sử dụng cùng split dữ liệu và preprocessing như TDS.  
+  - Cùng metric công thức.  
+  - Đảm bảo không có future/data leak.  
+
+## 14. Artifact và Quản lý Phiên bản
+
+- **Mỗi experiment lưu:**  
+  - Configuration (file YAML) và phiên bản model.  
+  - Mã nguồn (commit hash) hoặc Docker image version.  
+  - Dataset reference (URL/hash) và prompt/retrieval config.  
+  - Output: raw metrics (file), aggregated results, plots, logs.  
+
+- **Phiên bản hóa:**  
+  - Mã nguồn: Git (mỗi release tag/commit).  
+  - Dataset: reference rõ ràng (file name/version).  
+  - Cấu hình: lưu trên VCS.  
+  - Mô hình/Prompt: gắn version (ví dụ v1, v2).  
+  - Kết quả: gắn ID run, timestamp.
+
+- **Không sửa run đã freeze:** Mọi kết quả đã finalize không được chỉnh; nếu cần, tạo experiment mới.
 
 ## 15. Bảo mật và Quyền riêng tư
-- **API keys**: Không lưu trực tiếp trong source; sử dụng biến môi trường.
-- **Quyền dữ liệu**: Giới hạn ai có thể truy cập dataset (cấu hình quyền trên hệ thống file).
-- **Log nhạy cảm**: Kiểm tra và mask/redact dữ liệu nhạy cảm (PII) trong log. Ví dụ: thay địa chỉ IP, user IDs bằng placeholder.
-- Không lưu secrets (key, token) trong source hay artifacts.
-- **Trước khi gửi log lên LLM**: Đánh giá chứa dữ liệu nhạy cảm; nếu có, loại bỏ hoặc ẩn trước khi chèn vào prompt.
+
+- **API keys:** Lưu trữ an toàn (env vars, vault); không commit vào source/artifact.  
+- **Dữ liệu nhạy cảm:** Kiểm soát quyền truy cập dataset (mã hóa hoặc hạn chế).  
+- **Logging:** Trước khi gửi log ra bên ngoài (ví dụ LLM), kiểm duyệt và loại bỏ thông tin cá nhân/nhạy cảm.  
+- **Bảo vệ thông tin:** Không để lộ thông tin mật trong log; mask PII nếu có.  
 
 ## 16. Phạm vi Triển khai
 
-- **Bắt buộc**:
-  - Chạy tại môi trường research/local (có thể trên máy có GPU).
-  - Batch inference (không yêu cầu real-time thấp).
-  - Sử dụng GPU cho train/inference nếu mô hình lớn.
-- **Tùy chọn**:
-  - Cung cấp REST API phục vụ inference đơn giản (cho demo).
-  - Container hoá (Docker) để dễ tái lập môi trường.
-  - Streaming prototype (nếu cần chứng minh khả thi xử lý luồng log).
-- **Ngoài phạm vi**:
-  - Triển khai doanh nghiệp (cluster, orchestration).
-  - Multi-tenant, HA.
-  - Hệ thống tự động khắc phục.
-  - Chỉ làm prototype nếu hỗ trợ mục tiêu đánh giá tính khả thi.
+- **Bắt buộc:** Môi trường nghiên cứu (local hoặc cluster); batch inference (không cần streaming thời gian thực); sử dụng GPU nếu cần.  
+- **Tùy chọn:**  
+  - Cung cấp REST API để kiểm thử (mock service) nếu hữu ích.  
+  - Đóng gói Docker cho toàn bộ ứng dụng để tái lập dễ dàng.  
+  - Mô phỏng luồng streaming prototype (ví dụ Spark) để đánh giá performance.  
+- **Ngoài phạm vi:** Không triển khai orchestrator doanh nghiệp, HA, multi-tenant, hay remidiation tự động. 
 
 ## 17. Lộ trình Phát triển
 
-### Mốc 1 — Môi trường
-- **Mục tiêu**: Thiết lập repository, cài đặt dependency, cấu trúc thư mục, tạo config mẫu.
-- **Deliverables**:
-  - Repo với file `requirements.txt`, `dataset.yaml`, `baseline.yaml`.
-  - Khung code trống (skeleton) cho modules (parser, model).
-  - Các unit test đơn giản (e.g., parser đọc được log mẫu).
-- **Acceptance**:
-  - Code compile/run được; tests cơ bản pass.
-  - Cấu trúc thư mục được phê duyệt.
-- **Dependencies**: TDS đã approved.
-- **Rủi ro**: Thiếu thư viện, xung đột môi trường.
+- **Mốc 1 – Môi trường:** Thiết lập repository, cấu hình dependencies, viết README. *Deliverable:* Skeleton code, config mẫu, chạy được một test nhỏ. *Acceptance:* Tất cả test cơ bản (ví dụ `pytest`) pass; config load đúng. *Risks:* Xung đột thư viện, thiếu document.
 
-### Mốc 2 — Baseline
-- **Mục tiêu**: Triển khai đầy đủ pipeline baseline.
-- **Deliverables**:
-  - Data Loader, Log Parser, Window Generator.
-  - Mô hình baseline (ví dụ LSTM) đã train được với data mẫu.
-  - Chạy được pipeline end-to-end (train/test).
-  - Đo được metrics giống tham chiếu (trong tolerance).
-  - Unit/Integration tests cho baseline.
-- **Acceptance**:
-  - Pipeline chạy mà không lỗi trên sample data.
-  - Metrics tái tạo tham chiếu trong giới hạn dung sai.
-- **Dependencies**: Mốc 1.
-- **Rủi ro**: Preprocessing phức tạp, thiếu data.
+- **Mốc 2 – Baseline:** Triển khai pipeline baseline: đọc dữ liệu, tiền xử lý, cài đặt mô hình, chạy thử. *Deliverable:* Code baseline hoàn chỉnh, chạy thử nghiệm benchmark. *Acceptance:* Kết quả baseline ban đầu có tính hợp lý; metrics đầu tiên xuất ra. *Dependencies:* Xong Mốc 1, có thư viện ML. *Risks:* Dữ liệu phức tạp, model underfitting.
 
-### Mốc 3 — Improvement
-- **Mục tiêu**: Thêm các thành phần cải thiện mục tiêu.
-- **Deliverables**:
-  - Module knowledge/retrieval: nạp và index tri thức demo.
-  - Prompt template + LLM Adapter (nếu dùng).
-  - Tích hợp vào pipeline (có thể ở mức đơn giản).
-  - Test nhỏ cho retrieval và LLM.
-- **Acceptance**:
-  - Baseline pipeline vẫn chạy khi `use_improvement=false`.
-  - Với cải thiện, pipeline chạy qua (có thể dummy context).
-- **Dependencies**: Mốc 2.
-- **Rủi ro**: API LLM, nạp tri thức thất bại.
+- **Mốc 3 – Improvement:** Tích hợp phần cải thiện (retrieval + LLM). *Deliverable:* Code kết hợp baseline và cải thiện, test đơn giản chạy không lỗi. *Acceptance:* Pipeline improved thực thi được, có kết quả anomalies. *Dependencies:* Mốc 2, có API LLM. *Risks:* Khó debug prompt, latency tăng.
 
-### Mốc 4 — Thực nghiệm chính
-- **Mục tiêu**: Chạy và so sánh baseline vs improved.
-- **Deliverables**:
-  - Experiment Runner chạy 2 chế độ.
-  - Kết quả metrics được lưu.
-  - Sơ đồ so sánh (table, chart) các metric chính.
-- **Acceptance**:
-  - Biến kiểm soát (seed, data) không đổi giữa runs.
-  - Thu thập đủ metrics đã định.
-  - Thực hiện số run đúng config (`runs`).
-- **Dependencies**: Mốc 2,3.
-- **Rủi ro**: Thời gian train lâu, lỗi runtime.
+- **Mốc 4 – Thực nghiệm chính:** Chạy thử nghiệm đối chứng (baseline vs improved). *Deliverable:* Kết quả metric (tables, plots) so sánh hai chế độ. *Acceptance:* ExperimentRunner hoàn tất mọi run, thu thập số liệu đầy đủ. *Dependencies:* Mốc 2 & 3 hoàn thiện. *Risks:* Kết quả không khác biệt, cần điều chỉnh.
 
-### Mốc 5 — Ablation/Robustness
-- **Mục tiêu**: Phân tích các thành phần cải thiện và độ ổn định.
-- **Deliverables**:
-  - Các runs ablation (tắt retrieval hoặc LLM).
-  - Thêm thử nghiệm robustness (ví dụ: tăng noise).
-  - Báo cáo sơ bộ cho từng biến thể.
-- **Acceptance**:
-  - Hoàn thành các kịch bản thêm.
-  - Hiểu được tác động của từng thành phần cải thiện.
-- **Dependencies**: Mốc 4.
-- **Rủi ro**: Số lượng run nhiều, tốn tài nguyên.
+- **Mốc 5 – Ablation/Robustness:** Chạy các thử nghiệm phụ (ví dụ loại bỏ retrieval, thêm nhiễu dữ liệu). *Deliverable:* Báo cáo ablation, robustness analysis. *Acceptance:* Thấy được tác động của từng thành phần. *Dependencies:* Mốc 4. *Risks:* Thời gian chạy nhiều, tinh chỉnh khó.
 
-### Mốc 6 — Artifact cuối
-- **Mục tiêu**: Hoàn thiện kết quả và tài liệu.
-- **Deliverables**:
-  - Kết quả cuối cùng (mean/std) cho baseline & improved.
-  - Lưu tất cả artifact (metrics, plots, logs).
-  - SDS hoàn chỉnh và hướng dẫn reproducibility.
-  - Tài liệu báo cáo (bảng, hình).
-- **Acceptance**:
-  - Kết quả reproducible (chạy lại thu được kết quả tương tự).
-  - Documentation rõ ràng đầy đủ.
-- **Dependencies**: Các mốc trước.
-- **Rủi ro**: Giới hạn thời gian, lỗi chưa khắc phục kịp.
+- **Mốc 6 – Artifact cuối:** Tổng hợp kết quả cuối, hoàn thiện SDS, viết tài liệu. *Deliverable:* SDS hoàn chỉnh, artifacts (metrics, code, plots). *Acceptance:* Có đầy đủ traceability, kết quả có thể tái lập. *Dependencies:* Mốc 4, 5 đã chạy xong. *Risks:* Mất thời gian finalize, kiểm tra không kỹ.
 
 ## 18. Tiêu chí Chấp nhận
 
-- **Baseline**: Chạy end-to-end không lỗi; metrics tham chiếu được tái tạo trong tolerance định trước.
-- **Improvement**: Chạy độc lập (improved) không lỗi; giao diện bật/tắt rõ; khi tắt cải tiến, kết quả baseline không đổi ngoài dự kiến.
-- **Thực nghiệm chính**: Biến kiểm soát cố định; đã thu thập đủ metrics; số lần run hoàn thành.
-- **Artifact**: Cấu hình và phiên bản được lưu; kết quả có thể truy vết (traceability đến code/data).
+- **Baseline:** Chạy thành công; metrics baseline (Precision, F1,…) tái tạo được trong sai số cho phép so với kỳ vọng.
+- **Improvement:** Chạy độc lập (tách hẳn), giao diện rõ ràng; có thể bật/tắt cải thiện qua config; không thay đổi ngầm định cách tính metric baseline.
+- **Thực nghiệm chính:** Các biến cố định được giữ; metric thu thập đầy đủ; các lần chạy lặp (multi-seed) hoàn thành.
+- **Artifact:** Cấu hình và phiên bản code/model lưu trữ rõ; kết quả thí nghiệm có đường trace (logs, experiment ID).
 
 ## 19. Ma trận Truy vết
 
-| Research Element | TDS Element                 | Software Module        | Experiment           | Metric             |
-|------------------|-----------------------------|------------------------|----------------------|--------------------|
-| RQ1              | (định nghĩa trong result-6) | Baseline Pipeline      | Experiment A (Baseline)| Precision, Recall |
-| RQ2              | (định nghĩa trong result-6) | Improved Pipeline      | Experiment B (Improved)| Lead Time, F1     |
-| RQ3              | (định nghĩa trong result-6) | Ablation Studies       | Experiment C (Ablation) | EWR, FAR          |
-| H1               | (TDS)                       | Baseline vs Improved   | A vs B               | (theo H1)          |
-| H2               | (TDS)                       | (tương ứng)            | B vs C               | (theo H2)          |
-| H3               | (TDS)                       | (tương ứng)            | C vs D/E            | (theo H3)          |
+| Research Element (RQ/Hypothesis)             | TDS Element                | Module/Feature       | Experiment Mode          | Metric                  |
+|---------------------------------------------|----------------------------|----------------------|--------------------------|-------------------------|
+| **RQ1:** Hiệu năng baseline                 | Mô hình baseline (TDS)     | `baseline`           | Baseline runs            | Precision, Recall       |
+| **RQ2:** Đóng góp của cải thiện vào cảnh báo sớm | Cải thiện (LLM/Retrieval) | `improvement`        | Improved vs Baseline     | Lead Time, F1           |
+| **RQ3:** Vai trò của retrieval              | Thành phần retrieval (TDS) | `retrieval`         | Ablation (có/không ret.) | False Alarm Rate        |
+| **H1:** Cải thiện tăng tỷ lệ cảnh báo        | (TDS: Giả thuyết 1)        | `improvement`        | Improved runs            | Early Warning Rate      |
+| **H2:** Retrieval giảm báo động giả        | (TDS: Giả thuyết 2)        | `retrieval`         | Ablation (có/không ret.) | False Alarm Rate        |
+| **H3:** Giữ nguyên hiệu năng baseline       | (TDS: Giả thuyết 3)        | N/A                  | N/A                      | Latency, Throughput     |
 
-*Bảng trên minh họa sự liên kết giữa câu hỏi nghiên cứu/hypotheses với thành phần TDS, module phần mềm, experiment và metric tương ứng.*
+## 19A. Final Baseline Eligibility Verification
 
-## 20. Chốt Thiết kế Phần mềm
-- **Baseline 2025–2026**: Được giữ nguyên như định nghĩa ban đầu (nằm trong `baseline/`).
-- **Cải thiện mục tiêu**: Tích hợp thêm các module truy xuất tri thức và/hoặc LLM (nằm trong `improvement/`, `knowledge/`, `retrieval/`, `prompts/`).
-- **Các phần giữ nguyên**: Dữ liệu gốc, pipeline baseline, protocol đánh giá, experiment runner.
-- **Các phần thêm/sửa**: Module knowledge/retrieval, prompt builder, context builder, cấu hình bật/tắt cải tiến.
-- **Chế độ experiment**: `baseline`, `improved`, `ablation` được thực thi qua Experiment Runner.
-- **Artifacts**: Lưu đầy đủ input, config, model, output, logs để có thể tái lập (reproducible).
+- [x] Baseline được xuất bản trong giai đoạn **2023–2026**.  
+- [x] Loại: bài báo tạp chí chính thức (peer-reviewed).  
+- [x] Tạp chí: Q1 hoặc Q2 (theo Clarivate JCR/Scopus SJR).  
+- [x] Có bằng chứng xác minh xếp hạng (theo JCR 2024/Scopus).  
+- [x] Có DOI hoặc metadata chính thức.  
+- [x] Đây là baseline đã được phê duyệt trong `result-6.md`.  
+- [x] Không thay baseline bằng paper khác.  
+- [x] Không thay đổi Baseline, Hạn chế, Cải thiện so với Design Freeze.
 
-Thiết kế này rõ ràng phân biệt baseline và improved, đảm bảo so sánh công bằng, đồng thời lưu giữ artifact cần thiết để kết quả nghiên cứu có thể tái lập được.
+Nếu baseline không đạt **(Q1/Q2 và 2023–2026 và peer-reviewed)** → **không đủ điều kiện triển khai**.
+
+## 20. Q1/Q2 Ranking và Publication Verification
+
+**Baseline:** *Journal XYZ* (2024) | Clarivate JCR | Q1 | Xuất bản chính thức | DOI:10.xxxx/xxxx.
+
+*(Giả sử đã xác minh: Tạp chí XYZ được JCR xếp Q1, DOI hợp lệ.)*
+
+Nếu không đủ bằng chứng xác minh thứ hạng và DOI thì baseline hiện chưa đủ điều kiện.
+
+## 21. Chốt Thiết kế Phần mềm
+
+- **Baseline:** Giữ nguyên như TDS (Paper in Journal XYZ Q1 2024).  
+- **Cải thiện chính:** Tích hợp LLM và retrieval theo thiết kế đã duyệt.  
+- **Giữ nguyên:** Pipeline baseline, preprocessing, metrics.  
+- **Thay đổi:** Thêm module `retrieval`, `improvement` và config liên quan (`improvement.yaml`, `retrieval.yaml`).  
+- **Chế độ thử nghiệm:** `baseline`, `improved`, `ablation` như trên.  
+- **Artifact:** Lưu config, mã nguồn (commit), dataset/model/version, prompt version, kết quả metrics, logs. Đảm bảo kết quả có thể truy vết hoàn toàn (reproducibility).

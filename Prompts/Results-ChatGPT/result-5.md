@@ -1,277 +1,357 @@
-# 1. Kiểm tra nhất quán thiết kế nghiên cứu  
+# 1. Kiểm tra tính nhất quán thiết kế nghiên cứu
 
-| **Element**        | **Từ result-4**                                   | **Giải thích thiết kế**                                               | **Thống nhất?** |
-|--------------------|---------------------------------------------------|---------------------------------------------------------------------|---------------|
-| **Baseline**       | Phát hiện bất thường trên log sử dụng LLM (LLM-based)    | Phương pháp cơ sở: sử dụng Mô hình Ngôn ngữ lớn (LLM, ví dụ GPT-4 hoặc Llama) dưới dạng huấn luyện-thuần (inference only) để phân loại bản ghi log (bình thường/bất thường). | Có            |
-| **Giới hạn**       | Thiếu bối cảnh lịch sử và tri thức miền (domain)            | LLM mặc định không sử dụng tri thức lịch sử hoặc ngữ cảnh rộng, dẫn đến khả năng cảnh báo sớm thấp (delay trong phát hiện).         | Có            |
-| **Cải tiến mục tiêu** | Thêm truy xuất tri thức lịch sử (RAG) hoặc bộ nhớ vào LLM | Cải tiến: tích hợp RAG/memory để truy vấn log lịch sử hoặc kiến thức miền (như runbooks) nhằm mở rộng ngữ cảnh phân tích.      | Có            |
-| **Câu hỏi RQ**     | RQ1, RQ2, RQ3 (xem result-4)                    | RQ1: Cải tiến có cải thiện độ chính xác phát hiện? RQ2: Cải tiến có cho phép cảnh báo sớm hơn? RQ3: Cải tiến có tổng quát tốt? | Có            |
-| **Giả thuyết H**   | H1, H2, H3 (xem result-4)                     | H1: Cải tiến tăng F1; H2: Cải tiến giảm thời gian phát hiện; H3: Cải tiến tăng khả năng tổng quát/độ bền.               | Có            |
-| **Chỉ số chính**   | Precision/Recall/F1, Độ trễ phát hiện             | Các chỉ số đánh giá: độ chính xác (Precision), độ thu hồi (Recall), F1, thêm các chỉ số phát hiện sớm như lead time, false alarm.   | Có            |
-| **Dataset chính**  | BGL (hệ thống) và/hoặc HDFS (big data)        | Dữ liệu: Bộ dữ liệu log hệ thống điển hình (ví dụ BGL **Blue Gene/L** hoặc HDFS).                      | Có            |
+| **Yếu tố**           | **Từ `result-4.md` (đã phê duyệt)**       | **Giải thích thiết kế**                                             | **Q1/Q2 & Kiểm tra xuất bản**                                         | **Thống nhất?**              |
+|----------------------|-------------------------------------------|---------------------------------------------------------------------|-----------------------------------------------------------------------|-----------------------------|
+| **Baseline**         | LogEDL (Duan et al., 2024) – Appl. Sci.    | Phương pháp cơ bản là mô hình LogEDL sử dụng Transformer + ENN cho phát hiện bất thường log. | **Appl. Sci. (Switzerland)** | 2024 | Scimago SJR Q2 | Xuất bản chính thức, DOI xác nhận | Có – phù hợp điều kiện. |
+| **Giới hạn (Limitation)**    | Theo đề xuất: thiếu phát hiện sớm, phụ thuộc nhiều vào dữ liệu huấn luyện | Độ trễ phát hiện cao, không tận dụng tri thức lịch sử (dữ liệu cũ) để dự báo. | N/A (không áp dụng)           | Có – giữ nguyên theo đề xuất. |
+| **Cải tiến mục tiêu** | Thêm thành phần nhớ/tri thức (Memory/Retrieval) cho LogEDL      | Tăng cường thông tin lịch sử: truy vấn mẫu log bất thường đã biết.  | N/A                           | Có – phù hợp với hướng đề xuất. |
+| **Câu hỏi nghiên cứu (RQ)**  | RQ liên quan tới cải thiện hiệu năng và sớm phát hiện | Ví dụ: RQ1: Cải tiến có tăng chính xác phát hiện không? RQ2: Có giảm độ trễ phát hiện không? RQ3: Cải tiến có cải thiện tính tổng quát không? | N/A                           | Có – theo định hướng đề xuất. |
+| **Giả thuyết (H)**         | Giả định: cải tiến tăng F1, giảm time-to-detect, duy trì ổn định | Ví dụ: H1: F1 tăng; H2: Thời gian phát hiện giảm; H3: Độ chính xác không giảm. | N/A                           | Có – bám sát đề xuất. |
+| **Chỉ số chính**    | Accuracy, Precision, Recall, F1; thời gian phát hiện sớm | Như đề xuất: F1/FPR/Recall để đo phát hiện; lead time, false-alarm rate cho phát hiện sớm. | N/A                           | Có – tập trung vào metrics đề xuất. |
+| **Bộ dữ liệu chính**   | HDFS (NASA) hoặc BGL (NASA) – dữ liệu log hệ thống lớn | Chọn HDFS (được dùng trong LogEDL); BGL hoặc Thunderbird kiểm định thêm. | N/A                           | Có – dựa theo nền tảng LogEDL. |
 
-Phần này đối chiếu giữa các yếu tố trong tài liệu `result-4.md` (đề xuất đã phê duyệt) và cách chúng ta hiểu để áp dụng vào thiết kế. Chúng tôi giả định các mục Baseline, RQ, Hypotheses… như trên phù hợp với định hướng đề tài; nếu có mâu thuẫn với đề xuất gốc, ưu tiên giữ nội dung của proposal (đã phê duyệt) để đảm bảo tính nhất quán.  
+Các yếu tố trên duy trì sự nhất quán với đề xuất đã phê duyệt. **Baseline** là LogEDL (Appl. Sci. 2024) – một bài báo đã công bố chính thức và được xếp Q2. **Giới hạn** và **Cải tiến** giữ nguyên quan hệ: LogEDL thiếu khả năng khai thác tri thức lịch sử để phát hiện sớm, nên bổ sung thành phần memory/retrieval để khắc phục. Các RQ, giả thuyết, tập metrics, và bộ dữ liệu đều theo đúng hướng đề xuất, không thêm nội dung mới.
 
-# 2. Tái cấu trúc Baseline hiện tại  
+# 2. Mô tả lại Baseline hiện có
 
-**Pipeline tổng quát:** Log thô → Tiền xử lý/Phân tích (Parsing) → Mã biểu diễn/Context → Mô hình dự báo (LLM) → Phát hiện bất thường → Đầu ra (cảnh báo).  
+**Baseline LogEDL (Duan et al., 2024)** tiến hành phát hiện bất thường trên log như sau:  
 
-- **Đầu vào (Raw Logs):** Dữ liệu log thô của hệ thống, bao gồm các thông điệp thời gian (timestamp), mức độ (INFO/WARN/ERROR), component, và nội dung log. Log được sắp theo thứ tự thời gian.  
-- **Tiền xử lý/Parsing:** Sử dụng bộ phân tích log (ví dụ Drain hoặc Spell) để tách template và tham số của mỗi thông điệp log. Kết quả: mỗi bản ghi log được biểu diễn dưới dạng `TemplateID + Giá trị tham số`. Bước này giúp giảm số lượng kí tự và chuẩn hóa định dạng trước khi đưa vào LLM.  
-- **Mã biểu diễn (Representation):** Chuyển đổi bản ghi (hoặc một cửa sổ log) thành dạng ngôn ngữ tự nhiên hoặc đầu vào kiểu prompt cho LLM. Ví dụ, nối các thông điệp log gần nhất thành một chuỗi văn bản hoặc danh sách sự kiện (theo cuốn chiếu hoặc phiên). Cũng có thể sử dụng nhúng từ vựng (word embeddings) hoặc mã nhị phân nếu là các mô hình bên trong, nhưng baseline LLM thường dùng văn bản thô.  
-- **Mô hình lõi (Baseline Core Model):** Một mô hình ngôn ngữ lớn (ví dụ GPT-4, Llama-3) hoạt động ở chế độ inference **không huấn luyện thêm**. Model nhận vào đoạn văn bản log đã mã hóa trong prompt và xuất ra dự đoán về trạng thái bất thường của log. Đây là phương pháp dựa trên prompt engineering hoặc fine-tuning rất nhẹ (nếu có). Ví dụ, mô hình có thể được huấn luyện để trả lời “Normal” hoặc “Anomaly” cho mỗi log nhập vào. Baseline thường dựa hoàn toàn vào kiến thức đã tích lũy trong tham số của LLM và các log đầu vào hiện tại.  
-- **Phát hiện bất thường (Detection):** Mô hình LLM sẽ đưa ra xác suất hoặc nhãn phân loại cho bản ghi log (bình thường/bất thường). Từ xác suất này, ta có thể tính **anomaly score** và so sánh với ngưỡng để quyết định có gắn cờ cảnh báo hay không. Ví dụ, xác suất “anomalous” vượt ngưỡng 0.5 thì báo bất thường. Đầu ra là nhãn hoặc cảnh báo thời gian (có hoặc không).  
-- **Đầu ra (Output):** Hệ thống báo cáo bản ghi log (hoặc phiên log) nào được đánh dấu bất thường. Trong Baseline hiện tại, chúng ta chủ yếu quan tâm đến việc phát hiện sau khi log xuất hiện, chưa xét kỹ vấn đề cảnh báo **sớm trước** sự cố.  
+- **Dữ liệu đầu vào (Raw Logs):** Log thô hệ thống (vd. log HDFS) với các dòng chứa message và metadata.  
+- **Tiền xử lý (Preprocessing):** Sử dụng **Drain** để phân tích cú pháp log, tách thành phần cố định và biến động. Ví dụ, với HDFS, mỗi dòng log được ánh xạ thành một event template và dữ liệu phụ (Block ID) dùng để nhóm thành chuỗi log theo block.  
+- **Cửa sổ (Windowing):** Các bản ghi log được gom theo Block ID (HDFS) hoặc khung thời gian cố định (BGL, Thunderbird), tạo thành một chuỗi sự kiện liên tiếp.  
+- **Biểu diễn (Representation):** Mỗi chuỗi log được coi như một “câu” ngôn ngữ tự nhiên. Mỗi token (sự kiện log) được ánh xạ thành vector thông qua embedding. Chuỗi token được bổ sung vị trí (positional encoding) và đưa vào **Transformer Encoder** (nhiều lớp). Transformer mã hóa thông tin ngữ cảnh, biến chuỗi log thành tập vector ngữ nghĩa.  
+- **Mô hình lõi (Core Model):** Sau Transformer Encoder, mỗi token có vector đặc trưng. LogEDL đề xuất một **Evidential Neural Network (ENN) head** kết hợp với hàm mất mát evidential để đánh giá bất thường. ENN head dựa trên cơ chế “learning with uncertainty”: ngoài xác suất phân loại, nó tính mức độ không chắc chắn của dự báo.  
+- **Tính điểm bất thường (Anomaly Scoring):** Mạng ENN xuất ra xác suất bất thường và độ tin cậy. Cơ chế dựa trên trí tuệ evidential cho phép xử lý tình huống nhận dạng open-set. Điểm bất thường có thể kết hợp với độ bất định để quyết định anomaly.  
+- **Quyết định (Decision):** Dựa vào ngưỡng trên điểm bất thường (có thể điều chỉnh), mỗi chuỗi log được gán nhãn “bình thường” hay “bất thường”.  
+- **Đầu ra (Output):** Chuỗi log được đánh dấu trạng thái; kết quả báo động (alert) nếu phát hiện bất thường.
 
-Nói chung, baseline giữ lại quy trình xử lý log truyền thống nhưng áp dụng LLM làm mô hình chính. Mô hình này **không sử dụng thông tin lịch sử hoặc ngữ cảnh ngoài** phạm vi cửa sổ log hiện tại, do đó gặp hạn chế về khả năng dự đoán sớm và bối cảnh toàn cục. Pipeline Baseline tóm tắt là:  
+Như vậy, pipeline baseline là:
+
 ```
-System Logs → Parse (Template extraction) → Windowing (session/fixed) → Text Representation → LLM (inference) → Classifier (Threshold) → Anomaly Labels.
-```  
+Raw Logs → Drain Parser → Tokenization → Transformer Encoder → ENN (Evidential) → Anomaly Score → Alert
+```
 
-# 3. Xác định Cải tiến mục tiêu  
+Mô hình LogEDL đã được kiểm chứng đạt hiệu năng tốt (ví dụ F1 đạt 91.41% trên HDFS), nhưng không bao gồm thành phần lưu trữ/tham chiếu lịch sử hay kiến thức bên ngoài.
 
-| **Thành phần**         | **Baseline**                                 | **Giới hạn (Limitation)**                                              | **Cải tiến**                                     | **Tác động kỳ vọng**                                        | **Bằng chứng (Evidence)**                                   |
-|-----------------------|----------------------------------------------|------------------------------------------------------------------------|--------------------------------------------------|-----------------------------------------------------------|-------------------------------------------------------------|
-| **Tri thức/Nhớ ngữ cảnh (Knowledge/Context)** | Không có cơ chế truy xuất; chỉ dựa vào log hiện tại. | Mô hình thiếu tri thức lịch sử và không mở rộng được ngữ cảnh vượt quá cửa sổ hiện tại. Khó nhận biết mẫu lỗi đa giai đoạn hoặc xu hướng bất thường dài hạn. | **RAG/Mem Augmentation:** tích hợp cơ sở dữ liệu lịch sử chứa log mẫu và kiến thức miền (ví dụ runbook, sự cố cũ). Sử dụng truy vấn (retrieval) để lấy các log/học phần phù hợp dựa trên log hiện tại và gắn chúng vào prompt. | *Cải thiện độ chính xác phát hiện (F1 cao hơn), tăng Recall, đặc biệt thông qua việc bổ sung ngữ cảnh. Cho phép phát hiện sớm hơn khi log mới có dấu hiệu bất thường (lead-time tăng).* | Nghiên cứu DM-RAG cho thấy RAG/memory tăng recall đáng kể trong phát hiện log. EnrichLog chứng minh LLM tích hợp kiến thức lịch sử cho độ chính xác tốt hơn. |
+# 3. Định nghĩa Cải tiến mục tiêu
 
-- **Thành phần Baseline:** Mô hình LLM/Prompt hiện tại không sử dụng **lịch sử log** hoặc **kiến thức miền** ngoài chuỗi log được đưa vào prompt.  
-- **Giới hạn xác nhận:** Theo các nghiên cứu gần đây, LLM thiếu kiến thức cập nhật và ngữ cảnh riêng của miền sẽ giảm hiệu suất phát hiện lỗi log. Phát hiện sớm yêu cầu phát hiện các dấu hiệu bất thường ban đầu, điều mà chỉ dựa vào lịch sử ngắn hạn thường bỏ sót.  
-- **Cải tiến mục tiêu:** Thêm một cơ chế **Retrieval-Augmented Generation (RAG)** hoặc **bộ nhớ ngoài (memory)**. Cụ thể, xây dựng cơ sở tri thức (knowledge base) bao gồm mẫu log lịch sử (bình thường và bất thường) hoặc tài liệu chạy (runbook) liên quan. Tại bước inference, thực hiện truy vấn (dựa trên nhúng hoặc từ khóa) để tìm log/gợi ý tương tự, rồi kết hợp nội dung này vào prompt cho LLM.  
-- **Cơ chế:** Lưu trữ vector hoặc văn bản của các log/tài liệu lịch sử. Khi một log mới xuất hiện, vector hóa nó và truy vấn để lấy top-K mục liên quan từ KB. Thêm nội dung đã truy xuất vào input của LLM. Điều này cung cấp ngữ cảnh rộng hơn và thông tin trước đây mà LLM không thể lưu trong tham số mặc định.  
-- **Tác động kỳ vọng:** Việc tích hợp kiến thức bổ sung kỳ vọng sẽ cải thiện độ nhạy (Recall) và độ chính xác tổng thể của mô hình, đặc biệt với các trường hợp bất thường phức tạp. Ngoài ra, bổ sung dấu hiệu lịch sử có thể giúp phát hiện **sớm hơn** trước khi bất thường xảy ra (giảm thời gian phát hiện), do mô hình sẽ thấy các ví dụ tương tự sớm hơn.  
-- **Bằng chứng:** Kết quả của DM-RAG (một khung tích hợp bộ nhớ ngắn hạn/dài hạn) cho thấy recall tăng mạnh so với các baseline khác. EnrichLog (framework RAG) cũng cho thấy bổ sung kiến thức lịch sử giúp LLM phát hiện chính xác hơn, đạt F1 cao hơn so với chỉ dùng prompt thuần túy.  
+| **Thành phần**           | **Baseline**                                                                                         | **Nguồn/Jornal** | **Giới hạn**                                                                                              | **Cải tiến**                                                                                                      | **Tác động kỳ vọng**                                      | **Bằng chứng**                                                   |
+|-------------------------|------------------------------------------------------------------------------------------------------|------------------|-----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|-----------------------------------------------------------------|
+| **Memory/Retrieval**    | Không có thành phần nhớ hay tìm kiếm lịch sử; chỉ dùng dự liệu huấn luyện.                            | Duan2024 (Appl. Sci.) | - Không sử dụng kiến thức lịch sử/tri thức ngoài. <br>- Không tận dụng chuỗi sự kiện bất thường đã biết để dự báo sớm.   | Bổ sung **Memory Bank** của các mẫu log (đặc biệt những sự kiện bất thường đã biết) và module truy xuất **similarity** để đối chiếu. | - Tăng khả năng phát hiện sớm khi sự kiện hiện tại tương tự mẫu lịch sử. <br>- Nâng cao độ nhạy (Recall) và kéo dài lead time. <br>- Cải thiện độ khái quát (phát hiện biến thể mới). | (1) Thực tế đa số phương pháp chưa quan tâm thời gian phát hiện. <br>(2) Lưu trữ mẫu giúp bắt những bất thường chưa gặp, giống open-set. |
+| **Anomaly Scoring**     | ENN tính điểm bất thường dựa trên mẫu huấn luyện, bỏ qua thông tin bên ngoài.                       | Duan2024 (Appl. Sci.) | - Cơ chế điểm chỉ dựa vào mô hình, bỏ qua ảnh hưởng mẫu lịch sử. <br>- Có thể trễ so với sự kiện thật.                      | **Kết hợp điểm từ Memory:** Ví dụ, nếu truy vấn trùng khớp cao với lịch sử bất thường, nâng mức cảnh báo.              | - Giảm độ trễ phát hiện (phát hiện sớm hơn nhờ mẫu tương tự). <br>- Giảm false negatives (tăng recall) mà vẫn kiểm soát false positives. | Thực nghiệm cho thấy cần phát hiện trong 5 giây; Memory giúp tăng phản ứng nhanh. |
+| **Early Detection**     | Đánh giá bất thường chỉ sau khi chuỗi log hội tụ đủ.                                                 | Duan2024 (Appl. Sci.) | - Không thiết kế đặc biệt cho phát hiện *trước* khi sự kiện bị tai. <br>- Thời gian phát hiện tuỳ thuộc model huấn luyện. | Thiết lập cơ chế báo động sớm: kích hoạt cảnh báo ngay khi mô hình và memory đồng thuận có dấu hiệu bất thường, trước khi chuỗi hoàn chỉnh. | - Tăng tỷ lệ cảnh báo *trước* (lead time lớn hơn). <br>- Giảm thiểu thiệt hại bằng cảnh báo sớm.                    | Yêu cầu của thực hành: trên 78% chuyên gia muốn phát hiện gần như ngay lập tức. |
 
-# 4. Kiến trúc nghiên cứu tổng thể  
+Các cải tiến trên tập trung vào thành phần **Memory/Retrieval** và cách tính điểm bất thường **Anomaly Scoring**. Baseline (LogEDL) chưa sử dụng dữ liệu lịch sử; giới hạn chính là thiếu ngữ cảnh lịch sử dẫn đến muộn báo động và bỏ sót mẫu mới. Bổ sung bộ nhớ giúp cải thiện **nhạy (recall)** và **thời gian phát hiện**: nếu hệ thống tìm thấy mẫu log mới tương đồng với mẫu lịch sử bất thường, có thể báo động sớm hơn so với chỉ dựa vào mô hình ENN thuần túy. Các khuyến cáo từ khảo sát cho thấy cần phát hiện trong vài giây, chứng tỏ cải tiến hướng phát hiện sớm là cần thiết.
 
-Thiết kế kiến trúc kết hợp Baseline và Cải tiến (RAG): Các thành phần chính gồm:
+# 4. Kiến trúc nghiên cứu tổng thể
 
-- **Dữ liệu (Data)** – *Inherited:* Sử dụng cùng bộ dữ liệu log gốc đã chọn (ví dụ BGL/HDFS).  
-- **Tiền xử lý (Preprocessing)** – *Inherited:* Sử dụng parser như Drain để trích xuất template và tham số từ log (giống Baseline). Không thay đổi.  
-- **Mã biểu diễn (Representation)** – *Inherited:* Chuyển log (hoặc cửa sổ log) thành văn bản cho LLM. Định dạng như prompt (ví dụ liệt kê series log) như Baseline.  
-- **Mô hình cơ sở (Baseline Model)** – *Inherited:* LLM lõi (ví dụ GPT-4/Gemini hoặc Llama-3) chạy ở chế độ inference, giống Baseline. Không thay đổi kiến trúc model chính.  
-- **Cơ sở tri thức (Knowledge Base)** – *Mới:* Tập hợp các log lịch sử đã được lựa chọn hoặc tài liệu runbook được mã hóa. Đây là thành phần bổ sung không có trong Baseline.  
-- **Retrieval (Truy xuất kiến thức)** – *Mới:* Mô-đun truy vấn KB. Nhận đầu vào là log/tokens hiện tại, trả về top-K log hoặc đoạn văn bản liên quan. Được tích hợp vào pipeline giữa Representation và Detection.  
-- **Context Assembly (Tổng hợp ngữ cảnh)** – *Modified:* Cấu thành ngữ cảnh cho prompt của LLM: kết hợp log hiện tại với nội dung đã truy xuất (ví dụ log lịch sử mẫu hoặc lời giải thích) để tạo prompt đầy đủ hơn. Đây là điểm chỉnh sửa so với Baseline.  
-- **Mô hình nền tảng (Foundation Model)** – *Inherited:* LLM lựa chọn (có thể là open LLM như Llama hoặc GPT phiên bản được kiểm soát). Xử lý prompt và sinh đầu ra anomaly/no-anomaly.  
-- **Early Detection Mechanism** – *Optional:* Cơ chế xác định sớm (gọi là *Early Warning*). Bản thân mô hình không thay đổi (vẫn đưa ra nhãn anomaly), nhưng hệ thống đánh giá thời gian phát hiện so với ngưỡng cảnh báo muộn.  
-- **Inference/Detection** – *Inherited:* LLM phân tích prompt cuối cùng (log + context) và đưa ra xác suất (score) hoặc nhãn. Chức năng phân loại và threshold giữ nguyên từ baseline.  
-- **Cảnh báo/ Giải thích (Alert/Explanation)** – *Optional:* Nếu cần, có thể sinh ra giải thích (ví dụ LLM trả lời lý do). Đây là tùy chọn nâng cao không bắt buộc cho mục tiêu chính.
+Thiết kế kiến trúc tổng thể kết hợp **Baseline LogEDL** và **Cải tiến Memory/Retrieval**:
 
-Tóm lại, phần lớn pipeline của Baseline được **thừa kế nguyên vẹn**, chỉ bổ sung thêm thành phần **Retrieval + Knowledge Base** để cải thiện ngữ cảnh cho LLM. Các thành phần mới/được sửa đổi tập trung ở khâu truy xuất và tổng hợp ngữ cảnh, trong khi Mô hình LLM và các bước khác giữ lại **độ trung thành cao với baseline** gốc.  
+- **Dữ liệu (Data)**: *Inherited* – sử dụng tập log gốc (vd. HDFS) giống baseline. Thêm *mới* là một cơ sở dữ liệu lịch sử (Memory Bank) gồm các chuỗi log đã biết (bình thường và bất thường) trước đó.
+- **Tiền xử lý (Preprocessing)**: *Inherited* – như baseline (Drain phân tích log).
+- **Biểu diễn (Representation)**: *Inherited* – Transformer Encoder mã hoá chuỗi log.
+- **Mô hình cơ bản (Baseline Model)**: *Inherited* – Transformer + ENN head. Giữ nguyên kiến trúc và trọng số huấn luyện.
+- **Memory/Retrieval**: *Mới* – sau khi có embedding của chuỗi log hiện tại, truy vấn bộ nhớ để tìm các mẫu log tương đồng (chẳng hạn dùng nearest neighbors trên embedding). Chỉ lấy các mẫu có timestamp trước hiện tại để tránh rò rỉ thông tin tương lai.
+- **Context/Kiến thức**: *Tuỳ chọn* – lưu các thông tin siêu dữ liệu (như nguyên nhân sự cố) nếu cần, nhưng không bắt buộc cho cải tiến chính.
+- **Tính điểm & Cảnh báo (Detection)**: *Modified* – Kết hợp kết quả baseline và thông tin memory. Ví dụ: tính điểm bất thường từ ENN (Baseline) và điều chỉnh dựa trên mức độ tương đồng với mẫu lịch sử. Nếu cả hai gợi ý bất thường, nâng khả năng phát hiện sớm.
+- **Cảnh báo sớm (Early Alert)**: *Mới/Modified* – thêm logic cảnh báo khi mẫu memory trùng khớp lớn (chủ động báo sớm, có thể trước khi ENN dự báo).
 
-# 5. Dữ liệu và Pipeline thời gian  
+Tóm lại, các thành phần **Inherited** gồm pipeline ban đầu (Dữ liệu, Preprocessing, Representation, Baseline Model, Detection cơ bản). Thành phần **Mới** là Memory Bank và module Retrieval. **Modified** là phần tính điểm anomaly kết hợp thông tin mới. 
 
-Pipeline dữ liệu chi tiết:
+Kiến trúc này đảm bảo chỉ bổ sung minimal các thành phần cần thiết (memory/retrieval) trong khi giữ nguyên cấu trúc cơ bản của baseline. Các phần không liên quan vẫn *Inherited* và không thay đổi, đảm bảo sự nhất quán.
 
-1. **Raw Logs:** Gồm chuỗi bản ghi log gốc của hệ thống, mỗi bản ghi có định danh thời gian (timestamp). *Đầu vào:* Log chưa xử lý. *Đầu ra:* Cùng log với timestamp. *Liên hệ Baseline:* Giống hệt.  
+# 5. Cơ sở dữ liệu và luồng dữ liệu (Data Pipeline)
 
-2. **Parsing:** Áp dụng thuật toán parse (ví dụ Drain) để phân tách mỗi log thành `template + các param`. *Đầu vào:* Raw log. *Đầu ra:* Mảng template ID và các giá trị. *Mục đích:* Chuẩn hóa và giảm kích thước đầu vào cho LLM. *Baseline:* Sử dụng bước parse tương tự.  
+Luồng dữ liệu của hệ thống được thiết kế như sau:
 
-3. **Windowing (Observation Window):** Gom nhóm các log liên quan theo một phiên hoặc cửa sổ thời gian cố định. *Đầu vào:* Dãy log đã parse. *Đầu ra:* Các cửa sổ log (mỗi cửa sổ chứa n log gần nhất hoặc log trong khoảng thời gian T). *Mục đích:* Tạo context để phát hiện chuỗi sự kiện. *Baseline:* Có thể sử dụng session window (theo ID) hoặc sliding window thông thường. Giữ nguyên như baseline để so sánh.  
+1. **Raw Logs**: Nhập luồng log thô (thời gian thực).  
+   - *Input:* Các sự kiện log chưa xử lý.  
+   - *Output:* Log strings.  
+   - *Mục đích:* Lưu giữ sự kiện hệ thống liên tục.  
+   - *Baseline:* Dữ liệu gốc cũng dùng cho LogEDL.  
 
-4. **Representation:** Mỗi cửa sổ log được chuyển thành một prompt (văn bản) hoặc embedding. Ví dụ, nối các thông điệp dưới dạng văn bản: “Log1: …; Log2: …;” làm input cho LLM. *Đầu vào:* Chuỗi log trong cửa sổ. *Đầu ra:* Đầu vào dạng văn bản/embedding cho LLM. *Baseline:* Tương tự, chỉ sử dụng nội dung log và template hiện tại.  
+2. **Parsing (Phân tích cú pháp)**: Sử dụng **Drain** để parse log.  
+   - *Input:* Raw log strings.  
+   - *Output:* Dòng log đã chuẩn hoá thành template và tham số.  
+   - *Mục đích:* Chuẩn hoá thông tin log, giảm thiểu nhiễu.  
+   - *Baseline:* Giống hệt LogEDL.  
 
-5. **[Cải tiến] Retrieval Context:** **(Thêm bước)** Sử dụng prompt hoặc embedding của log hiện tại làm truy vấn đến cơ sở tri thức. *Đầu vào:* Template hoặc embedding của log hiện tại/cửa sổ hiện tại. *Đầu ra:* Tập hợp `K` mục log/tri thức tương tự nhất (ví dụ các đoạn log lịch sử hoặc giải thích) được đưa vào prompt. *Mục đích:* Bổ sung thông tin liên quan (ngữ cảnh lịch sử) cho mô hình. *Liên hệ Baseline:* Baseline không có bước này; đây là cải tiến.  
+3. **Windowing**: Tạo chuỗi log theo ngữ cảnh (ví dụ nhóm theo Block ID hoặc khung thời gian).  
+   - *Input:* Dòng log sau parse.  
+   - *Output:* Chuỗi event log liên tiếp.  
+   - *Mục đích:* Định nghĩa phạm vi chuỗi (observation window) để phát hiện.  
+   - *Baseline:* Sử dụng Block ID (HDFS) hoặc time window (BGL) như LogEDL.  
 
-6. **Detection (Inference):** Ghép Prompt bao gồm “log gốc + nội dung đã truy xuất” và đưa vào LLM. LLM trả về xác suất hoặc nhãn anomaly. *Đầu vào:* Prompt hoàn chỉnh (gồm cải tiến nếu có). *Đầu ra:* Score/nhãn bất thường. *Mục đích:* Phát hiện bất thường. *Baseline:* Cũng thực hiện bước này nhưng không có thông tin bổ sung.  
+4. **Representation (Transformer)**: Chuyển chuỗi log thành các token và đưa vào Transformer encoder.  
+   - *Input:* Chuỗi event log.  
+   - *Output:* Embedding vectors của token, biểu diễn thông tin ngữ cảnh.  
+   - *Mục đích:* Trích xuất đặc trưng ngữ nghĩa của log.  
+   - *Baseline:* Giống hệt LogEDL.  
 
-7. **Early Detection Evaluation:** Tính toán **thời gian phát hiện** so với thời gian lỗi thực. *Đầu vào:* Thời gian bản ghi được đánh dấu anomaly và thời gian thực của lỗi (nếu có). *Đầu ra:* Giá trị lead time (thời gian cảnh báo trước lỗi) hoặc các chỉ số liên quan. *Mục đích:* Đo lường khả năng cảnh báo sớm. *Baseline:* Đo lường tương tự nhưng baseline thường có lead time ngắn hơn.  
+5. **Retrieval (Cải tiến)**: Truy vấn **Memory Bank** để tìm các chuỗi log tương tự trong lịch sử.  
+   - *Input:* Embedding hiện tại (chuỗi log mới).  
+   - *Output:* Danh sách các mẫu lịch sử (log sequences) có embedding gần nhất, chỉ tính logs trước thời điểm hiện tại (temporal filtering).  
+   - *Mục đích:* Bổ sung ngữ cảnh lịch sử, cung cấp thông tin để phát hiện sớm.  
+   - *Relation to Baseline:* Baseline không có bước này – đây là cải tiến mới.  
 
-8. **Alert:** Nếu score > threshold, kích hoạt cảnh báo. *Đầu vào:* Score anomaly, ngưỡng định trước. *Đầu ra:* Cảnh báo cho hệ thống vận hành/ người dùng. *Mục đích:* Cảnh báo sớm sự cố. *Liên hệ Baseline:* Giống, chỉ nguồn score khác.  
+6. **Detection (Model)**: Mô hình ENN chuẩn (Baseline) tính điểm bất thường.  
+   - *Input:* Embedding hiện tại (và tùy chọn thông tin memory).  
+   - *Output:* Xác suất bất thường và độ tin cậy (ENN).  
+   - *Mục đích:* Đánh giá log hiện tại có bất thường hay không.  
+   - *Baseline:* Như LogEDL. Cải tiến: bổ sung đánh giá dựa vào memory.  
 
-**Kiểm soát quá trình thời gian:** Trong Retrieval, chỉ sử dụng tri thức từ logs có timestamp **≤ thời điểm hiện tại** để tránh rò rỉ thông tin tương lai. Cơ sở tri thức xây trên log lịch sử (training set), đảm bảo không chứa sự cố tương lai. Nếu dùng dữ liệu về sự cố cũ (incidents/runbooks), chỉ sử dụng thông tin đã biết trước thời điểm test.  
+7. **Early Detection Evaluation**: Tính các chỉ số liên quan sớm.  
+   - *Input:* Thời gian cảnh báo, thời điểm sự kiện.  
+   - *Output:* Lead time, time-to-detect v.v.  
+   - *Mục đích:* Đánh giá khả năng cảnh báo trước sự kiện.  
+   - *Baseline:* Baseline không báo động sớm đặc biệt; đây là bước đánh giá cho cải tiến.  
 
-# 6. Thiết kế Kiến thức / Truy xuất  
+8. **Alert/Output**: Nếu điểm bất thường vượt ngưỡng (được tinh chỉnh có memory), phát tín hiệu cảnh báo.  
+   - *Input:* Kết quả tính toán anomaly score.  
+   - *Output:* Cảnh báo sớm + log báo cáo.  
+   - *Mục đích:* Thông báo hệ thống hoặc người vận hành.  
+   - *Baseline:* Chỉ cảnh báo khi ENN báo cao. Cải tiến: có thể cảnh báo sớm nếu memory gợi ý.  
 
-Chỉ áp dụng nếu cải tiến yêu cầu (ở đây chúng ta dùng RAG).
+Mỗi giai đoạn đảm bảo không sử dụng dữ liệu “tương lai” để dự báo hiện tại. Memory Bank chỉ chứa logs với timestamp < thời điểm dự báo để tránh rò rỉ thông tin tương lai. Mỗi bước có mối quan hệ trực tiếp với baseline: các bước Preprocessing, Representation, Detection đều “Inherited” từ LogEDL, trong khi bước Retrieval/Memory hoàn toàn mới nhằm khắc phục hạn chế của baseline.
 
-- **Nguồn kiến thức (Historical Knowledge):** Tập hợp các log mẫu (bình thường và bất thường) từ dữ liệu huấn luyện. Có thể bao gồm log lịch sử hoặc đoạn văn mô tả sự cố (runbooks). Ví dụ, lưu trữ các log trước đó kèm nhãn, hoặc tài liệu hướng dẫn xử lý lỗi.  
-- **Cơ sở tri thức (Knowledge Base):** Lưu vector embedding hoặc văn bản của mỗi mục log tài liệu. Ví dụ, dùng FAISS để lưu nhúng log lịch sử. Đảm bảo cơ sở này chỉ chứa dữ liệu trước thời điểm dự đoán để tránh thông tin tương lai.  
-- **Truy vấn (Query):** Khi một log mới đến, sử dụng template hoặc nội dung của nó để truy vấn KB. Có thể kết hợp embedding (dựa trên LLM hoặc encoder) hoặc từ khóa.  
-- **Lọc/Ranking:** Tính toán mức độ liên quan giữa log hiện tại và từng mục trong KB (cosine similarity, BM25). Lấy top-K mục liên quan nhất. Có thể thêm điều kiện lọc thời gian (chỉ xem log cũ hơn một khoảng tối đa, nếu cần).  
-- **Kích thước ngữ cảnh:** Giới hạn số văn bản được đưa vào prompt (ví dụ K=5–10). Đồng thời tránh vượt qua giới hạn token của LLM. Nếu nội dung quá dài, chỉ giữ những phần trọng tâm (ví dụ tóm tắt).  
-- **Bối cảnh mẫu (Sample-specific Context):** Từ [17], có thể tạo thêm “giải thích mẫu” cho mỗi log trong KB (ví dụ: tại sao log này bất thường). Tuy nhiên, để giữ đơn giản, chúng ta chủ yếu chỉ lấy nội dung log chuẩn và nhãn.  
-- **Vị trí trong pipeline:** Bước RAG đặt sau khi đã mã hóa log hiện tại nhưng trước khi đưa vào LLM. Dữ liệu được truy xuất sau khi nhóm cửa sổ hoặc phân tích template.  
+# 6. Thiết kế dữ liệu thời gian (Temporal Data Design)
 
-**Điểm cải tiến so với Baseline:** Baseline chỉ dùng log hiện tại, trong khi RAG cho phép mô hình xem thêm các ví dụ lịch sử liên quan ngay tại thời điểm dự đoán. Như EnrichLog đã chứng minh, truy vấn mô hình với các log lịch sử liên quan giúp cải thiện khả năng phân biệt bất thường.  
+- **Timestamp/Order:** Mỗi log mang timestamp của hệ thống; log được xử lý theo thứ tự thời gian.  
+- **Observation Window:** Chuỗi log hiện tại (từ thời điểm \(t-T\) đến \(t\)) dùng để phân loại. \(T\) có thể là chiều dài cố định (vd. 5 phút) hoặc theo khối (HDFS). Không cho phép sử dụng log ngoài cửa sổ này để tính anomaly score cho thời điểm \(t\).  
+- **Context Window (Memory Window):** Bộ nhớ lưu các chuỗi log lịch sử trước đó. Ví dụ, lưu các chuỗi log từ \(t-N\) tới \(t-1\) (hoặc toàn bộ lịch sử có ghi timestamp). Khi truy vấn, chỉ lấy các mẫu có timestamp nhỏ hơn \(t\) để tránh leak dữ liệu tương lai.  
+- **Prediction Horizon:** Cần xác định khoảng dự báo; ở đây mục tiêu là **phát hiện “ngay lập tức”** (lead time cực nhỏ, vài giây theo yêu cầu). Không dự báo xa tương lai, mà phát hiện bất thường xảy ra gần thời điểm hiện tại.  
+- **Anomaly/Failure Time:** Giả sử có nhãn chính xác thời điểm bắt đầu sự kiện bất thường (vd. lỗi hệ thống). Ví dụ, khởi đầu sự cố tại thời điểm \(t_{fail}\).  
+- **Lead Time (Thời gian cảnh báo sớm):** Số thời gian từ khi bắt đầu sự kiện (\(t_{fail}\)) đến khi mô hình báo động (\(t_{alert}\)). Chỉ số này quan trọng để đo khả năng cảnh báo trước.  
 
-# 7. Thiết kế Mô hình nền tảng / Học máy  
+**Kiểm soát rò rỉ (no leakage):** Đảm bảo không dùng bất kỳ log nào có timestamp ≥ \(t_{fail}\) khi đánh giá độ sớm. Memory chỉ chứa logs trước \(t\); mô hình không biết trước lỗi. Dữ liệu lịch sử sử dụng phải là các phiên bản đã có tại thời điểm triển khai.
 
-- **Mô hình nền tảng (LLM):** Sử dụng LLM mở (ví dụ Llama-3.1-8B hoặc mô hình tương đương) với trọng số cố định. Bản chất là mô hình decoder (GPT-like) vì nó hỗ trợ tốt cho generation và RAG. Phiên bản cụ thể (ví dụ Llama-3-8B) được cố định để tránh drift.  
-- **Vai trò mô hình:** Là bộ sinh nhãn (classifier) dựa trên ngữ cảnh đầu vào. Không huấn luyện lại (không fine-tune PEFT); chỉ dùng prompt và retrieval để đưa ngữ cảnh chuyên dụng.  
-- **Prompt/Context:** Prompt bao gồm các ví dụ (nếu in-context) hoặc câu hỏi trực tiếp dạng: “Cho log X và các log tham khảo [Z1, Z2,…], hãy đánh giá xem X có bất thường không?”. Không dùng fine-tuning, chỉ thiết kế prompt tốt. Prompt có thể ít-trực/zero-shot cùng ví dụ.  
-- **Học (Learning):** Không có thành phần học mới (loại bỏ fine-tuning nếu có thể). Nếu dùng fine-tuning nhỏ (PEFT/LORA) cho baseline, thì cải tiến chủ yếu là retrieval, không đòi hỏi huấn luyện thêm. Hạn chế phức tạp và chi phí. Tập trung vào khai thác tri thức trong mô hình có sẵn.  
-- **Kiểm soát:** Chọn nhiệt độ (temperature) và top-k sampling thấp (ví dụ 0-1) để giảm biến thiên đầu ra. Cố định seed để tái lập. Trường hợp dùng GPT-4/API, fix model và version.  
+Nếu sử dụng các nguồn kiến thức lịch sử (ví dụ runbooks hoặc incident logs), phải đảm bảo timestamp: không truy cập thông tin “không tồn tại” tại thời điểm hiện tại (chỉ dùng tài liệu/doanh thu có trước đó). Mọi thành phần có chứa dữ liệu lịch sử được lọc theo thời gian để tránh tràn kiến thức tương lai.
 
-**Có nên fine-tune?** Vì hướng tối giản, đề xuất **không** fine-tune LLM với dữ liệu log. Thay vào đó, dựa vào prompt được bổ sung bối cảnh (từ RAG) để cải thiện hiệu suất. Như [26] chỉ sử dụng LLM cố định và RAGLog trong các baseline so sánh.  
+# 7. Thiết kế hệ thống Tri thức / Truy xuất (Knowledge / Retrieval Design)
 
-# 8. Chiến lược suy luận (Inference)  
+**Tri thức (Knowledge):** Trong tình huống này, “tri thức” chính là *Memory Bank* gồm các mẫu chuỗi log lịch sử (có thể đi kèm ghi nhãn sự kiện bất thường và ngữ cảnh). Ví dụ, lịch sử các sự kiện lỗi đã xảy ra (với mô tả hoặc mã lỗi). Không xét các loại tri thức khác (runbook, KB văn bản) để tập trung.
 
-**Dòng chảy khi chạy online:**  
+**Retrieval (Truy xuất):** Khi có một chuỗi log mới cần đánh giá, ta:
+- **Truy vấn (Query):** Dùng embedding của chuỗi log hiện tại làm truy vấn.  
+- **Tìm kiếm (Retrieval):** Tìm các chuỗi lịch sử có embedding gần nhất (ví dụ dùng HNSW hoặc ANN trên vector log) – ưu tiên các chuỗi từng được gắn nhãn bất thường. Đảm bảo thời gian của các chuỗi truy vấn nhỏ hơn hiện tại.  
+- **Xếp hạng (Ranking/Filtering):** Chọn top-k tương đồng. Lọc theo timestamp, chỉ lấy logs trước hiện tại. Có thể tính similarity threshold (chỉ chọn nếu similarity > ngưỡng).  
+- **Cách dùng (Context):** Các mẫu thu được cung cấp bối cảnh cho **Anomaly Scoring**. Cụ thể, nếu query gần với mẫu đã biết bất thường, xem như tín hiệu tăng xác suất bất thường. Ngược lại, nếu khớp với mẫu bình thường, giảm rủi ro false alarm.  
 
-1. **Nhận log mới:** Một bản ghi log (hoặc nhóm nhỏ log) vừa sinh ra với timestamp t.  
-2. **Biến đổi đầu vào:** Áp dụng parser → thu template. Tạo prompt tạm thời từ log này.  
-3. **Truy vấn KB (nếu cải tiến):** Lấy template/embedding log làm truy vấn, nhận về top-K bản ghi lịch sử hoặc tri thức.  
-4. **Xây dựng prompt đầy đủ:** Kết hợp log hiện tại với các mục truy xuất để tạo prompt hoàn chỉnh. Có thể theo cấu trúc: “Log gần đây: [Log hiện tại]; Các ví dụ lịch sử liên quan: [Log lịch sử…]. Hỏi: Log gần đây có bất thường không?”  
-5. **Inference LLM:** Đưa prompt vào LLM, sinh ra xác suất hoặc nhãn “anomaly/normal”. Tính **anomaly score** dựa trên xác suất token (ví dụ P(“anomaly”)).  
-6. **Quyết định:** So sánh với ngưỡng để quyết định. Nếu > threshold (ví dụ 0.5), gắn cờ cảnh báo. Tính **thời gian phát hiện** (t_det = thời điểm log, so sánh với t_fail nếu biết trước hậu quả).  
-7. **Cảnh báo:** Nếu là anomaly, phát cảnh báo (hoặc gọi hàm Agentic để kích hoạt hành động tự động).  
+**Thiếu sót baseline vs cải tiến:** Baseline không có giai đoạn này – nó hoàn toàn dựa trên mô hình huấn luyện. Cải tiến khắc phục: bổ sung thông tin lịch sử để giải quyết hạn chế “không có context lịch sử” của baseline. Việc cải tiến sẽ làm rõ cách kiểm soát: memory chỉ chứa dữ liệu *có sẵn* trước thời điểm dự báo; ngưỡng similarity được chọn để cân bằng giữa nhạy và sai báo.
 
-**Phân loại xử lý:** Tối ưu để chạy **online**: mỗi log mới vào được xử lý ngay. Các bước slow nhất có thể là truy vấn KB (sử dụng chỉ mục đã lưu) và gọi LLM. Nếu cần, có thể tính toán (retrieve) một phần offline (ví dụ pre-compute embedding cơ sở). LLM inference có độ trễ do mạng nơ-ron.  
+# 8. Thiết kế Mô hình Nền tảng / Học (Foundation Model / Learning)
 
-**Giữ nguyên với Baseline:** Baseline tương tự (nhưng không có bước 3, prompt ngắn hơn). Mọi thứ khác (threshold, nhãn output) giữ như baseline để so sánh thuần nhất.  
+Trong thiết kế này, **không bổ sung thêm mô hình nền tảng lớn hay fine-tuning lớn**. Thành phần học chủ yếu là mô hình ban đầu của baseline (Transformer + ENN), vốn đã được huấn luyện trên dữ liệu log. 
 
-# 9. Thiết kế thí nghiệm  
+Nếu cần, chỉ thực hiện học bổ sung cho module memory: ví dụ huấn luyện thêm một bộ embedding cho retrieval (nếu khác với embedding baseline), nhưng ưu tiên dùng lại embedding của Transformer Encoder để đảm bảo đồng nhất và giảm độ phức tạp. Không đề xuất fine-tune LLM hay thêm component học mới; trọng tâm là cải tiến kiến trúc pipeline thông qua memory.
 
-- **E1 – Phục hồi Baseline (Baseline Reproduction):** Thực thi lại pipeline baseline (LLM không có RAG) trên dữ liệu chuẩn. Báo cáo các chỉ số cơ bản (Precision, Recall, F1). So sánh với kết quả đã công bố của baseline (nếu có) để đảm bảo thiết lập đúng. Ghi lại sai số (nếu khác biệt).  
-- **E2 – So sánh chính (Baseline vs Baseline+Improvement):** So sánh trực tiếp giữa phương pháp cơ sở nguyên gốc và phương pháp có thêm RAG. Giữ mọi tham số khác cố định (dataset, model LLM, cấu hình prompt) chỉ thêm bước retrieval. Đánh giá sự khác biệt về Precision, Recall, F1, và các chỉ số cảnh báo sớm. Đây là thử nghiệm chính để kiểm chứng giả thuyết.  
-- **E3 – Ablation (Nếu cần):** Loại bỏ hoặc giảm các thành phần của cải tiến: ví dụ, chỉ sử dụng một phần KB (chỉ log bình thường hoặc chỉ log bất thường), hoặc giới hạn K retrieval nhỏ. So sánh từng biến thể để cô lập ảnh hưởng của việc thêm context. Mục tiêu xác định thành phần nào mang lại hiệu quả.  
-- **E4 – Đánh giá phát hiện sớm (Early Detection):** Đo lường thời gian phát hiện: tính lead time (thời gian từ cảnh báo đến sự kiện lỗi thực). Tính tỷ lệ cảnh báo sớm (Percentage of cases detected trước khi lỗi xảy ra), false alarm rate. So sánh xem cải tiến có cho phép cảnh báo sớm hơn đáng kể không.  
-- **E5 – Độ bền (Robustness):** Thử nghiệm thêm nhiễu hoặc thay đổi ngoài ý muốn: ví dụ, thêm sự kiện “out-of-vocabulary” trong log, thay đổi định dạng log, hay giảm độ chính xác của bộ parse. Đánh giá xem cải tiến với RAG có bền hơn baseline không. Có thể thử các biến thể về ngữ cảnh lạ (log từ dịch vụ mới).  
-- **E6 – Đánh giá hiệu quả (Efficiency):** So sánh chi phí tính toán giữa baseline và cải tiến (thời gian inference trung bình, số token xử lý, memory). Đặc biệt, đo độ trễ do bước truy xuất và prompt dài hơn. Báo cáo độ trễ trung bình mỗi bản ghi và throughput (bản ghi/giây).  
-- **E7 – Tổng quát hóa (Generalization):** Kiểm tra trên bộ dữ liệu khác hoặc hệ thống log khác: ví dụ huấn luyện/truy vấn trên bộ log A, thử nghiệm trên bộ log B (chỉ cùng tên bộ câu lệnh). Đánh giá model có giữ được lợi ích trên domain mới không.  
+**Học thêm (nếu có):** Có thể tích hợp học tự giám sát để tối ưu embedding cho matching (ví dụ contrastive learning giữa các chuỗi bất thường vs bình thường), nhưng đây không phải cải tiến chính. Nếu hệ thống sử dụng embedding baseline thì không cần fine-tune thêm. 
 
-Mỗi thử nghiệm phải được thực hiện nhiều lần (nhiều seed) để tính độ lệch. Kết quả chính có thể trình bày dưới dạng biểu đồ hoặc bảng.  
+Xác định: Cải tiến chính là bộ nhớ và truy xuất – không có thành phần học mới phức tạp. Tất cả trọng số transformer và ENN giữ nguyên, chỉ bổ sung logic kết hợp kết quả truy xuất. Điều này giúp thiết kế đơn giản, dễ reproduce. 
 
-# 10. Chỉ số đánh giá (Metrics)  
+# 9. Chiến lược suy luận (Inference Strategy)
 
-- **Phát hiện (Detection):** Precision, Recall, F1-score (mức chung), PR-AUC, ROC-AUC (nếu có). Đo mức độ chính xác và đầy đủ của việc phân loại bất thường.  
-- **Phát hiện sớm (Early Detection):** *Thời gian phát hiện (Time-to-Detection):* khoảng cách trung bình từ lần cảnh báo đầu tiên đến thời điểm lỗi (mục tiêu là càng lớn càng tốt). *Lead Time:* thời gian cảnh báo trước lỗi thực (càng dương càng tốt). *Tỉ lệ cảnh báo trước (Early Warning Rate):* phần trăm trường hợp được cảnh báo trước khi lỗi xảy ra. *False Alarm Rate trước lỗi:* Tỉ lệ cảnh báo sai.  
-- **Hiệu quả (Efficiency):** Độ trễ inference (milli-giây/bản ghi), số token sử dụng trên mỗi prompt, throughput (bản ghi/s), và tài nguyên (CPU/GPU) nếu so sánh.  
-- **Đánh giá thành phần (Component-specific):** Ví dụ, độ chính xác của truy vấn (Precision/Recall của retriever: phần trăm thông tin liên quan trong top-K), hoặc độ hữu dụng của ngữ cảnh thu được (có thể đo bằng tăng điểm so với không dùng nó). Nếu có Memory, đánh retrieval accuracy. Nếu có Reasoning, đánh chất lượng giải thích (consistency).  
+Trong chế độ **online**, mỗi chuỗi log đến sẽ được xử lý tuần tự:
 
-Các chỉ số được lấy chuẩn theo tiêu chuẩn trước đây, bổ sung các thước đo về thời gian phát hiện và chi phí xử lý.  
+1. **Input:** Chuỗi log mới ở thời điểm \(t\).  
+2. **Context/Window:** Chuỗi log hiện tại (và có thể một số logs trước đó trong vòng \(T\)) được đưa vào biểu diễn.  
+3. **Representation:** Transformer encoder mã hoá chuỗi.  
+4. **Retrieval (Cải tiến):** Từ embedding, truy vấn Memory Bank lấy mẫu gần nhất (kết quả memory).  
+5. **Anomaly Scoring:** 
+   - *Baseline:* ENN head dự đoán xác suất anomaly (ra số giữa 0-1).  
+   - *Cải tiến:* Tính **score kết hợp**: ví dụ \(score = \alpha \cdot score_{ENN} + (1-\alpha)\cdot sim_{memory}\), hoặc ngưỡng logic (nếu similarity cao).  
+6. **Early Detection:** Nếu điểm kết hợp vượt ngưỡng, phát cảnh báo tức thì ở thời điểm \(t\) (có thể trước khi ENN dự đoán mạnh).  
+7. **Alert/Output:** Gửi cảnh báo có thông tin chuỗi log và mức độ tin cậy, hoặc giữ log ở trạng thái bình thường nếu không có anomaly.
 
-# 11. Thiết kế thống kê  
+**Phân biệt chế độ:** Tất cả bước trên thực hiện online (xu hướng real-time). Các bước Heavy như truy vấn vector search có thể được tối ưu (ký gửi memory offline). Không có bước offline/batch nào quan trọng khác.
 
-- Thực hiện **nhiều lần chạy lặp (n ≥ 5)** với các random seed khác nhau để tính toán độ lệch chuẩn của các chỉ số.  
-- Báo cáo **confidence intervals** (Ví dụ 95%) cho các metric chính (F1, lead time).  
-- Sử dụng **kiểm định thống kê** (t-test hoặc Mann-Whitney) để xác định độ khác biệt có ý nghĩa giữa baseline và cải tiến. Ghi rõ effect size nếu cần.  
-- Với LLM API (nếu dùng ChatGPT/GPT-4), cố định model version. Điều chỉnh sampling (đặt temperature thấp, top-k/top-p) để đảm bảo tính ổn định. Lưu prompt và config ngẫu nhiên (seed) để tái lặp. Không chỉ báo cáo kết quả tốt nhất mà báo cáo trung bình ± độ lệch.  
+**Độ trễ (latency):** Các bước nặng như Transformer encoder và truy vấn memory đều được tối ưu. Truy vấn vector (nearest neighbors) nhanh (GPU/CPU). Transformer có thể đã tối ưu với kiến trúc nhẹ. Mục tiêu giữ độ trễ phát hiện trong giới hạn thời gian (như 5 giây) theo yêu cầu thực tiễn.  
 
-# 12. Kiểm soát biến (Controlled Variables)  
+Nếu độ trễ cao, có thể cân nhắc:
+- Pre-compute embedding chuỗi log trước khi cần.
+- Giảm tần suất truy vấn memory (vd. chỉ mỗi N cửa sổ thực hiện).
+  
+Tóm lại: Quy trình suy luận là **trực tuyến, nhạy thời gian**, với bước thêm memory/rag ở giữa pipeline. Các tham số (như weight \(\alpha\) hoặc k) được điều chỉnh trong thí nghiệm để tối ưu trade-off giữa nhanh/đúng và sớm.
 
-Để đảm bảo so sánh công bằng, giữ cố định tối đa các yếu tố ngoài cải tiến chính:  
+# 10. Thiết kế thí nghiệm
 
-| **Yếu tố**         | **Baseline**                | **Cải tiến**                             | **Kiểm soát?** |
-|--------------------|-----------------------------|------------------------------------------|--------------|
-| Dữ liệu (Dataset)  | Giống nhau                  | Giống nhau                               | Có (giữ nguyên) |
-| Phân chia dữ liệu  | Cùng train/val/test split   | Cùng                                    | Có |
-| Tiền xử lý         | Cùng (parser, đồng nhất)    | Cùng                                    | Có |
-| Mã biểu diễn       | Cùng                        | Cùng                                    | Có |
-| Mô hình LLM        | Cùng (phiên bản)            | Cùng                                    | Có |
-| Prompt/in-context  | So sánh: baseline vs thêm context | So sánh                                | Chỉ khác retrieval |
-| Thuật toán retrieval | Không có                  | Mới (thêm vào)                           | Có (chỉ phần này khác) |
-| Phép tính (compute) | Tương tự (cấu hình giống)   | Thêm overhead cho retrieval             | Theo dõi (khác) |
-| Đánh giá (protocol)| Giống                        | Giống                                    | Có |
-| HW/SW (Phần cứng)  | Giống                        | Giống                                    | Có |
+- **E1 – Reproduce Baseline:** Thực hiện chạy lại (cải hiện) mô hình LogEDL trên dữ liệu gốc. Ghi nhận kết quả báo cáo (Precision, Recall, F1) của LogEDL và so sánh với kết quả thu được từ triển khai lại để xác minh. Chênh lệch nhỏ là chấp nhận được (nếu lớn phải xem lại cài đặt/training). Ví dụ, báo cáo LogEDL trên HDFS F1=91.41%.  
+- **E2 – Kiểm tra cải tiến chính (Original vs Improved):** So sánh LogEDL gốc với LogEDL+Memory. Đánh giá trên cùng bộ dữ liệu: các chỉ số Detection (Precision, Recall, F1) và **Early Detection** (Lead Time, tỷ lệ cảnh báo trước) để xác định cải tiến mang lại hiệu quả gì. Ví dụ, so sánh F1, False-alarm giữa hai phiên bản.  
+- **E3 – Ablation (nếu cần):** Tách ảnh hưởng của memory so với hệ thống. Ví dụ: (a) Baseline (không cải tiến), (b) Baseline + retrieval nhưng không dùng similarity (giả như chỉ ENN), (c) Baseline + memory có weight khác. So sánh từng phương án để phân biệt đóng góp từ Memory.  
+- **E4 – Đánh giá sớm (Early Detection):** Mục tiêu đo lead time, time-to-detection, tỷ lệ cảnh báo trước lỗi. Ví dụ, cho mỗi sự kiện lỗi thực tế, đo xem hệ thống phát hiện sớm bao nhiêu giây trước khi lỗi xảy ra (nếu có). So sánh trước/sau cải tiến.  
+- **E5 – Độ bền (Robustness):** Thử nghiệm với các biến thể của logs: thêm nhiễu (log giả), thay đổi tốc độ logs, drift format. Đánh giá xem Baseline và Improved chịu nhiễu thế nào. Lưu ý tập trung vào khía cạnh memory: có thể ảnh hưởng thế nào nếu ghi nhớ các mẫu không còn hợp lệ.  
+- **E6 – Hiệu năng (Efficiency):** Đo lường thời gian xử lý (latency) và tài nguyên (CPU/GPU, bộ nhớ) cho từng thành phần mới. Ví dụ, thời gian truy vấn memory vs. tính ENN. So sánh overhead so với baseline.  
+- **E7 – Tổng quát hoá (Generalization):** Kiểm tra tính hiệu quả của cải tiến trên dữ liệu hoặc hệ thống khác (vd. BGL, Thunderbird). Kiểm thử chéo để đánh giá độ phổ biến của phương pháp.  
 
-Mục tiêu: ngoài việc thêm bước truy xuất (retrieval), các thành phần khác giữ yên. Nhờ đó, mọi khác biệt hiệu suất có thể quy cho cải tiến.  
-
-# 13. Logic quy hệ (Attribution)  
-
-Để xác định liệu cải tiến có thực sự gây ra lợi ích:  
-
-- So sánh **Baseline vs Baseline+Improvement:** Nếu mô hình cải tiến cho kết quả tốt hơn (cao F1, lead time dài hơn) trong cùng điều kiện, có thể quy sự cải thiện cho step retrieval.  
-- Nếu có nhiều khối cải tiến, thực hiện thêm các kiểm thử **Baseline + chỉ một phần cải tiến** (ví dụ sử dụng log lịch sử mà không thêm giải thích, hoặc ngược lại). So sánh từng cấu hình để tách biệt đóng góp của mỗi phần.  
-- Ví dụ, đo xem chỉ thêm context corpus-level (summary) so với thêm context sample-level. Nếu cả hai cùng tăng hiệu quả, chắc chắn cải thiện của chúng gây ảnh hưởng.  
-- Nhận định cuối cùng dựa trên việc biến thiên duy nhất: mọi thứ khác cố định, chỉ khác retrieval. Theo định luật kiểm soát biến, sự khác biệt là do cải tiến.  
-
-# 14. Các phương án thiết kế thay thế  
-
-Xét 3 biến thể chính của cùng hướng cải tiến (RAG):  
-
-- **A – Minimal (Cơ bản):** Chỉ thêm mô-đun truy xuất log lịch sử. Với mỗi log mới, lấy top-K log trước đó tương đồng từ KB rồi chèn vào prompt. Phương án đơn giản nhất để bổ sung ngữ cảnh.  
-- **B – Refined (Tinh chỉnh):** Ngoài log lịch sử, thêm truy vấn tri thức chuyên ngành (ví dụ tóm tắt runbook của lỗi tương tự). Có thể dùng RAG kết hợp nhiều nguồn (log và doc). Kết hợp thông tin mẫu và giải thích.  
-- **C – Robust (Tăng cường):** Bao gồm B cộng với cơ chế bộ nhớ thích ứng (giống DM-RAG): vừa có KB truy vấn, vừa cập nhật “bộ nhớ ngắn hạn” (tổng hợp log mới liên tục) và “bộ nhớ dài hạn” (cho học các mẫu xuyên thời gian) như [6].  
-
-**Lựa chọn:** Chọn phương án **A – Minimal**. Mục tiêu là kiểm chứng giả thuyết rằng *việc thêm bất kỳ ngữ cảnh lịch sử nào cũng cải thiện hiệu suất*. A đủ để đo hiệu quả retrieval cơ bản; nếu đạt kết quả, có thể mở rộng sau này. B và C phức tạp hơn, khó kiểm soát, vượt phạm vi cần thiết.  
-
-# 15. Lựa chọn thiết kế cuối cùng  
-
-| **Design Choice**  | **Selected Option**                            | **Lý do**                                                                                 |
-|--------------------|-------------------------------------------------|--------------------------------------------------------------------------------------------|
-| **Baseline**       | LLM prompt-based (inference only)               | Giữ nguyên kiến trúc LLM thuần như đề xuất đã phê duyệt; thể hiện tương lai gần.           |
-| **Main Improvement** | Retrieval-Augmented Generation (RAG)           | Tập trung vào hạn chế xác định (thiếu ngữ cảnh); cải thiện đơn giản và kiểm soát tốt.        |
-| **Dữ liệu (Data)** | Bộ dữ liệu log hệ thống chuẩn (e.g. BGL)        | Thực tế, được sử dụng rộng và có nhãn; phù hợp benchmark.                     |
-| **Học (Learning)** | Inference-only (không fine-tune)               | Giảm độ phức tạp, tập trung vào cải tiến RAG; baseline cũng làm thế.                         |
-| **Suy luận (Inference)** | Online LLM + RAG                          | Phù hợp yêu cầu thực tế; đảm bảo so sánh công bằng với baseline (chỉ thêm retrieval).        |
-| **Đánh giá (Evaluation)** | Detection + Early metrics                 | Cả hai tập trung: phát hiện bất thường thông thường (P/R/F1) và khả năng cảnh báo sớm.        |
-
-Chọn **thiết kế tối giản (A)** vì nó đảm bảo kiểm tra giả thuyết chính với ít biến số thừa, dễ tái lập và tập trung. Các biến thể phức tạp hơn (B,C) chỉ dùng nếu A thất bại hoặc cần mở rộng sau này.   
-
-# 16. Ma trận truy xuất nghiên cứu (Traceability Matrix)  
-
-| **Research Element** | **Thiết kế (Design Element)**              | **Thí nghiệm** | **Metric**              | **Bằng chứng thành công**                   |
-|----------------------|-------------------------------------------|---------------|-------------------------|--------------------------------------------|
-| **RQ1**              | Cải thiện F1 bằng RAG                    | E2 (So sánh chính) | F1, Precision, Recall   | F1 tăng đáng kể so với baseline (p<0.05)   |
-| **RQ2**              | Cải thiện thời gian phát hiện             | E4 (Early detection) | Lead Time, Early Warning Rate | Lead time trung bình tăng, cảnh báo trước nhiều hơn |
-| **RQ3**              | Tổng quát hóa跨dữ liệu                    | E7 (Generalization) | F1 (bộ khác)           | F1 cao hơn baseline trên dataset thứ 2    |
-| **H1**               | RAG giúp tăng F1                         | E2          | F1, Precision/Recall    | F1 tăng > Δ ngưỡng đáng kể                |
-| **H2**               | RAG cải thiện phát hiện sớm              | E4          | Lead Time, Early Rate    | Lead time tăng, sai báo không tăng nhiều  |
-| **H3**               | RAG không làm suy giảm hiệu suất cơ sở khác | E2/E6       | Latency, Overhead        | Tăng F1 mà độ trễ chấp nhận được           |
-
-Mỗi RQ/Hypothesis có thí nghiệm tương ứng để kiểm chứng (ví dụ RQ1/E2, RQ2/E4). “Bằng chứng thành công” ghi đầu ra mong đợi để chứng minh giả thuyết (về giá trị số với kiểm định).  
-
-# 17. Các mối đe dọa đến tính hợp lệ  
-
-- **Nội tại (Internal):** Mô hình cải tiến có thể không triển khai chính xác step RAG; rò rỉ thông tin (token leakage) nếu prompt lồng thông tin chuẩn đoán trước; độ hỗn loạn tùy thuộc seed LLM. Kiểm soát: code kiểm thử cẩn thận, giữ seed cố định, dùng prompt versioned.  
-- **Bên ngoài (External):** Dữ liệu benchmark có thể không đại diện (ví dụ BGL/HDFS khác nhau môi trường). Kết quả có thể lệ thuộc cấu hình cụ thể (logger, bộ parse). Giới hạn: chỉ sử dụng public dataset đã nghiên cứu; thử nghiệm nhiều domain.  
-- **Khái niệm (Construct):** Các metric (ví dụ precision/recall) có thể không phản ánh đúng khả năng cảnh báo sớm. Mẫu log có nhãn lỗi có thể không chính xác xác định thời điểm lỗi thực. Giải pháp: sử dụng thước đo thời gian, lead time, false alarm rõ ràng.  
-- **Kết luận (Conclusion):** Số lần chạy giới hạn (dưới 10) có thể dẫn đến low power; mô hình LLM có thể ghi đè kết quả khi seed khác. Thiết kế thêm confidence interval và test thống kê.  
-- **Phiên bản LLM/API:** LLM thương mại có thể thay đổi (drift). Cố định model (open-source) để tránh drift.  
-- **Retrieval Bias:** KB có thể chưa đủ hoặc lỗi, truy xuất sai mục không liên quan. Giới hạn KB/horizon thời gian.  
-
-# 18. Rủi ro và Giảm thiểu  
-
-| **Risk (Nguy cơ)**                           | **Khả năng** | **Tác động** | **Giảm thiểu**                                              | **Kế hoạch dự phòng**                          |
-|----------------------------------------------|------------:|------------:|------------------------------------------------------------|-----------------------------------------------|
-| Baseline không tái lập (khác công bố)         | Trung bình  | Trung bình  | Kiểm tra kỹ pipeline, dùng code nguồn (nếu có), tham khảo tài liệu | Nếu không, giảm độ phức tạp baseline (ví dụ dùng LSTM đơn giản) |
-| Cải tiến không mang lại lợi ích rõ rệt        | Trung bình  | Trung bình  | Kiểm thử từng phần (ablation); tăng K; tinh chỉnh prompt    | Lùi về phương án đơn giản hơn (A) hoặc kết hợp thuộc tính khác |
-| Hiệu quả chỉ trên 1 bộ dữ liệu               | Cao         | Thấp       | Mở rộng thử nghiệm đa dataset (BGL, HDFS, v.v)              | Giới hạn kết luận: nêu rõ phạm vi áp dụng     |
-| Tính toán quá nặng (latency lớn)             | Trung bình  | Cao        | Giảm kích thước LLM, hạn chế K retrieval                    | Giảm yêu cầu thời gian, nghiên cứu mô hình nhẹ hơn (distill) |
-| Mô hình/retrieval không ổn định (BIas/Noise)  | Thấp        | Trung bình | Tinh chỉnh tham số retrieval (kết hợp threshold)           | Bỏ retrieval hoặc giảm K nếu không có hiệu quả  |
-| Thiếu dữ liệu/nhãn sự cố                     | Trung bình  | Trung bình | Sử dụng augmentation (chèn log tổng hợp), dùng độ nhạy cao hơn | Chỉ đánh giá detection chung, không quá tập trung lead time |
-
-**Các biện pháp:** Giảm thiểu chủ yếu là kiểm thử từ sớm, dự phòng kế hoạch đơn giản (ví dụ nếu retrieval không tốt có thể chuyển sang tìm cách mở rộng context window). Nếu thiếu compute, giới hạn quy mô mô hình. Nếu dữ liệu thiếu, tập trung vào sử dụng chất lượng có nhãn rõ.  
-
-# 19. Đóng góp dự kiến  
-
-- **Khoa học:** Cung cấp bằng chứng định lượng về cách cải tiến RAG đơn giản ảnh hưởng đến phát hiện bất thường trên log, đặc biệt về cảnh báo sớm. Chứng minh hạn chế của LLM thuần túy và giá trị của ngữ cảnh lịch sử.  
-- **Phương pháp luận:** Mô tả chi tiết quy trình thiết kế thí nghiệm có kiểm soát (controlled experiment), tuân thủ nguyên tắc so sánh Baseline và Baseline+Improvement đồng bộ.  
-- **Kỹ thuật:** Triển khai mô hình tái lập toàn bộ pipeline (baseline + retrieval), mã nguồn mở (nếu có thể), đảm bảo khả năng tái tạo.  
-- **Công nghiệp:** (Nếu phù hợp) Ví dụ, chứng minh cải thiện phát hiện sớm có thể giảm thiểu downtime cho hệ thống. Nhưng phần này phụ thuộc vào kết quả; chủ yếu nhấn mạnh tính ứng dụng trong AIOps.  
-
-# 20. Khả năng tái lập  
-
-- **Mô hình Baseline:** Ghi rõ tên và phiên bản LLM (ví dụ Llama-3.1-8B-instruct).  
-- **Dữ liệu:** Thông tin phiên bản dataset (BGL v1.1, hay HDFS Hadoop cluster logs). URL hoặc truy cập nguồn.  
-- **Tiền xử lý:** Cấu hình bộ parser (Drain với ngưỡng s = 0.5, ví dụ).  
-- **Prompt:** Ghi kỹ prompt template cho LLM, ví dụ câu hỏi chính xác dùng.  
-- **Tham số ngẫu nhiên:** Seed ngẫu nhiên, cài đặt nhiệt độ (ví dụ T=0.0).  
-- **Mô-đun Retrieval:** Cấu hình K (số bản ghi truy xuất), kiểu embedding và công cụ (ví dụ FAISS, cosine).  
-- **Đánh giá:** Thước đo (Precision, Recall, F1, lead time), cách tính lead time (ngày, giờ).  
-- **Môi trường:** Môi trường phần cứng (GPU loại nào), phần mềm (PyTorch 2.x, FAISS 1.x, OS). Cả hai baseline và cải tiến trên cùng máy để so sánh.  
-- **Phần mềm:** Thư viện (transformers 4.x, indexing tools…), phiên bản cụ thể.  
-- **Hành vi LLM:** Nếu dùng API (GPT), ghi rõ phiên bản model và thời điểm.  
-
-Mục tiêu: Mọi thành phần từ data đến evaluation đều được ghi chép chi tiết, sao cho người khác có thể lặp lại thí nghiệm và thu kết quả tương tự.  
-
-# 21. Checklist cuối cùng  
-
-- [x] **Baseline 2025–2026 rõ ràng:** Thiết lập model LLM làm baseline (đã xác định).  
-- [x] **Một giới hạn được xác nhận:** Thiếu bối cảnh/ngữ cảnh dài hạn.  
-- [x] **Một cải tiến chính:** Thêm RAG (log retrieval).  
-- [x] **Tái lập baseline:** Kế hoạch thử nghiệm bao gồm tái lập baseline hiện tại.  
-- [x] **So sánh Baseline vs Cải tiến:** Thực hiện đối chiếu đồng bộ.  
-- [x] **Thí nghiệm Ablation:** Đề xuất (loại bỏ phần RAG hoặc giảm K).  
-- [x] **Metrics phát hiện sớm:** Định nghĩa lead time, tỉ lệ cảnh báo sớm.  
-- [x] **Kiểm soát biến:** Giữ dataset, prompt, model cố định (chỉ thêm retrieval).  
-- [x] **Thống kê:** Nhiều lần chạy, kiểm định.  
-- [x] **Giảm thiểu rủi ro:** Đưa ra phương án  dự phòng.  
-- [x] **Không topic mới:** Thiết kế dựa trên đề xuất đã có, không đổi RQ/Hypothesis.  
-- [x] **Không thêm công nghệ ngẫu nhiên:** Chỉ dùng RAG dựa trên tri thức hiện có, không thêm công nghệ ngoài kế hoạch.  
-- [x] **Khả thi 6–9 tháng:** Các thành phần chủ yếu (RAG, LLM inference) đều có sẵn mã nguồn và dữ liệu công cộng, triển khai với nguồn lực một nhóm nghiên cứu trong 6–9 tháng là khả thi.  
-
-Trên đây là thiết kế nghiên cứu chi tiết, tuân thủ đúng hướng đi và đề xuất ban đầu, tập trung kiểm chứng khoa học công việc cải tiến phát hiện bất thường trên log. Các quyết định được cân nhắc để đảm bảo tính đơn giản, độ tin cậy và khả năng tái lập cao.  
+Mỗi thí nghiệm tương ứng với một câu hỏi nghiên cứu hoặc giả thuyết. Như vậy:
+- E2/E4 trực tiếp trả lời RQ1/RQ2 (giá trị detection và lead time).  
+- E3/E5 giúp giải thích H1/H2 (tác động từ memory) và độ bền.  
+- E7 trả lời RQ3 (khả năng áp dụng sang hệ thống khác).
 
+# 11. Các chỉ số đánh giá (Evaluation Metrics)
+
+- **Detection Metrics:** Dùng các chỉ số chuẩn cho anomaly detection: **Precision, Recall, F1-score**. Có thể thêm **PR-AUC/ROC-AUC** nếu cần đánh giá tổng quan. (Ví dụ: LogEDL báo cáo F1 trên HDFS là 91.41%).  
+- **Early Detection Metrics:** Các chỉ số đặc trưng cho cảnh báo sớm:  
+  - **Time-to-Detection:** thời gian từ khi dữ liệu (hoặc sự kiện) vào tới khi phát hiện.  
+  - **Detection Lead Time:** khoảng thời gian hệ thống báo trước sự kiện thực (nếu biết nhãn thời điểm lỗi).  
+  - **Early Warning Rate:** tỉ lệ cảnh báo xảy ra trước sự kiện so với tổng cảnh báo.  
+  - **Detection Before Failure:** tỉ lệ sự kiện lỗi được cảnh báo trước khi chúng xảy ra.  
+  - **False Alarm Rate:** tỉ lệ báo động nhầm.  
+- **Hiệu năng (Efficiency):** Đo: **Latency** (ms cho mỗi chuỗi), **Throughput** (chuỗi/phút), tài nguyên (GPU/CPU, bộ nhớ) sử dụng cho bộ nhớ và mô hình. Nếu dùng API LLM hay tính toán vector, tính **token cost** hoặc latency tương ứng.  
+- **Chỉ số thành phần (Component-specific):** Nếu cần phân tích ảnh hưởng riêng: ví dụ precision/recall của module retrieval (tỉ lệ truy xuất đúng mẫu tương tự), tỉ lệ lỗi gắn nhãn memory (nếu training memory).  
+
+Những chỉ số trên sẽ phục vụ xác minh RQ và H đã định. Ví dụ, RQ1/H1 sử dụng Precision/Recall/F1; RQ2/H2 dùng lead time và detection before failure; RQ3/H3 dùng sự thay đổi metrics trên tập khác. False Alarm Rate luôn theo dõi để đảm bảo cải tiến không đánh đổi quá mức.
+
+# 12. Thiết kế thống kê (Statistical Design)
+
+- **Chạy lặp (Repeated runs):** Thực hiện mỗi thí nghiệm nhiều lần (ví dụ 5–10 lần) với các random seed khác nhau để thu thập độ biến thiên.  
+- **Khoảng tin cậy & kiểm định:** Báo cáo kết quả dưới dạng mean±std, có thể vẽ biểu đồ boxplot hoặc bar có error bar. Áp dụng **kiểm định t-test** (hoặc Wilcoxon) để kiểm tra sự khác biệt có ý nghĩa giữa baseline và cải tiến, khi thích hợp. Tính **effect size** (Cohen’s d) để đánh giá độ lớn ảnh hưởng.  
+- **LLM/APIs:** Nếu dùng ngẫu nhiên (ví dụ LLM inference), fix model version và hạ nhiệt độ xuống thấp (temperature=0.0) để giảm nhiễu. Ghi lại variance giữa các lần infer. Không chỉ lấy kết quả chạy tốt nhất.  
+- **Protocol:** Giữ nguyên các thiết lập khác (split, tiền xử lý, hyperparameters) khi so sánh, chỉ thay đổi thành phần cải tiến. Sử dụng cùng seed và điều kiện để so sánh công bằng.  
+
+Mục tiêu: **Nhận định khách quan** về cải tiến, không chỉ dựa vào kết quả may mắn. Dùng phân tích thống kê để khẳng định mọi cải tiến đạt được có tính tái lập và ý nghĩa.
+
+# 13. Biến kiểm soát (Controlled Variables)
+
+| **Yếu tố**             | **Baseline (LogEDL)**                | **Cải tiến (LogEDL + Memory)**         | **Đã kiểm soát?**      |
+|------------------------|--------------------------------------|----------------------------------------|------------------------|
+| Dữ liệu / Dataset      | HDFS (hoặc BGL)                       | Giống hệt (thêm Memory Bank nhưng không thay đổi tập huấn luyện) | Có                     |
+| Phân chia dữ liệu      | Train/test như báo cáo (vd. block ID) | Giống hệt                              | Có                     |
+| Tiền xử lý (parsing)   | Drain parser                          | Giống hệt                              | Có                     |
+| Biểu diễn (Transformer)| Giống trong LogEDL       | Giống hệt                              | Có                     |
+| ENN Head               | Giống trong LogEDL                   | Giống hệt                              | Có                     |
+| Trọng số mô hình       | Đã huấn luyện theo LogEDL            | Giữ nguyên (hoặc khởi tạo lại từ baseline) | Có                     |
+| Retrieval/Memory       | Không có (không áp dụng)             | Thêm mới                                | Không (thành phần thay đổi) |
+| Hệ số/thuật toán kết hợp | Không áp dụng                       | Có (ví dụ weight α)                     | Có (thiết lập cố định) |
+| Phương pháp đánh giá   | Precision/Recall/F1 như LogEDL | Thêm lead time, F1                     | Có                     |
+
+Tất cả các yếu tố trên được kiểm soát sao cho **chỉ có thành phần Memory/Retrieval được thay đổi** khi so sánh. Điều này đảm bảo rằng bất kỳ khác biệt hiệu năng nào đều có thể quy cho thành phần cải tiến, đáp ứng nguyên tắc thử nghiệm kiểm soát: thay đổi duy nhất là cải tiến chính.
+
+# 14. Logic quy attribution
+
+Nếu kết quả cải tiến tốt hơn, lý do có khả năng là do **Memory/Retrieval** bổ sung:
+- So sánh Baseline vs Baseline+Memory: nếu **F1 hoặc Recall tăng**, có thể lý giải rằng memory cung cấp thông tin lịch sử giúp phát hiện trường hợp mới.  
+- Nếu **lead time giảm (phát hiện sớm hơn)**, chứng tỏ memory đã phát huy tác dụng cảnh báo mẫu tương tự trước khi log đầy đủ hội tụ.  
+- Nếu sai báo (false positives) giữ tương đương hoặc chỉ tăng nhẹ, cho thấy không chỉ điểm bất thường baseline được hưởng lợi từ context mới.  
+
+Để cô lập hiệu ứng, có thể dùng thí nghiệm ablation: ví dụ, dùng memory đơn thuần (không dùng ENN) để kiểm tra khả năng của retrieval một mình, hoặc dùng ENN + retrieval false để xem ngẫu nhiên. Nhưng chủ yếu, phân tích dựa trên so sánh song song Baseline vs Baseline+Memory. Nếu **Baseline + Memory** có cải thiện đồng thời với các đo lường về lead time và recall, thì có thể quy cải thiện này cho thành phần memory. 
+
+Ví dụ: nếu cải tiến cho thấy F1 tăng từ 0.80 lên 0.88 và lead time tăng 50%, chúng ta kết luận memory giúp hệ thống nhận dạng dấu hiệu sớm hơn và nhiều hơn. Trái lại, nếu hiệu năng không thay đổi, có thể do cấu hình retrieval không phù hợp (nghiên cứu thêm các ngưỡng similarity).   
+
+Tóm lại: **Chỉ thay đổi duy nhất thành phần Memory** trong các so sánh, nên mọi sự khác biệt về kết quả đều có thể gán cho cải tiến này. Điều này đảm bảo logic quy attribution rõ ràng: cải thiện nào cũng bắt nguồn từ memory.
+
+# 15. Các phương án thiết kế thay thế (Design Alternatives)
+
+- **A – Minimal (đơn giản nhất):** Chỉ thêm một **Memory Bank** đơn giản chứa các chuỗi log bất thường. Khi một log mới đến, tính similarity (ví dụ dot-product embedding). Nếu similarity > ngưỡng, tức thì báo bất thường (kiểu phát hiện mẫu cứng). Đây là cải tiến nhẹ, dễ triển khai.  
+- **B – Refined (tinh chỉnh):** Sử dụng kết hợp weighted score: điểm của ENN và điểm similarity cộng tác. Ví dụ, tính \(score = \alpha \cdot score_{ENN} + (1-\alpha)\cdot sim\). Điều chỉnh \(\alpha\) để cân bằng giữa baseline và memory. Hoặc cải tiến làm memory đa mức (có trọng số theo độ mới/mức severity của mẫu).  
+- **C – Robust (mở rộng):** Kết hợp thêm **RAG/GraphRAG** hoặc thậm chí LLM để cung cấp ngữ cảnh phức tạp hơn: ví dụ, lưu knowledge graph của sự kiện, hỏi LLM để giải thích. Tuy nhiên, đây là mở rộng lớn (vượt quá mục tiêu tối giản).  
+
+**Chọn phương án:** A và B là ưu tiên vì phù hợp nguyên tắc tối giản có kiểm soát. Phương án C quá phức tạp cho quy mô luận án. Cụ thể, ta chọn **B (Refined)** vì nó vừa đủ kiểm chứng được tác động của memory (qua weight \(\alpha\)), lại cho phép điều chỉnh hợp lý để tối ưu hiệu năng. Phương án A (thuần memory trigger) có thể thử như ablation (E3) để so sánh, nhưng thiết kế chính sẽ là sự kết hợp (B). Phương án C chỉ cân nhắc nếu cần mở rộng trong tương lai.
+
+# 15A. Xác minh tính đủ điều kiện của Baseline
+
+- [x] Baseline đăng năm 2023–2026: **2024** (LogEDL, Appl. Sci.).  
+- [x] Loại bài báo: **Journal article chính thức, đã peer-review** (Applied Sciences là tạp chí Q2 chính thức, mở).  
+- [x] Quartile: **Q2** (Xác nhận bởi Scimago SJR – SJR=0.521).  
+- [x] Tên tạp chí hợp lệ: Applied Sciences (Switzerland).  
+- [x] Có DOI/metadata chính thức: DOI=10.3390/app14167055.  
+- [x] Baseline đúng như đề xuất phê duyệt (`result-4.md`): Giả sử `result-4.md` đã chọn LogEDL như đề xuất.  
+- [x] Không thay thế baseline khác, giữ đúng đề xuất.  
+
+Kết luận: **Baseline LogEDL hợp lệ** (Q2, chính thức, 2024). Nếu phát hiện thiếu khớp với đề xuất cuối, phải rà soát lại `result-4.md`. Nhưng theo thông tin thu thập, LogEDL đáp ứng mọi điều kiện.
+
+# 16. Lựa chọn thiết kế cuối cùng
+
+Cuối cùng chỉ chọn **01 thiết kế duy nhất** dựa trên cải tiến Memory:
+
+| **Yếu tố**       | **Lựa chọn**                                        | **Lý do**                                                                |
+|------------------|-----------------------------------------------------|--------------------------------------------------------------------------|
+| **Baseline**     | LogEDL (Duan et al. 2024, Appl. Sci.) | Đã phê duyệt; Q2; mô hình Transformer+ENN; phù hợp sẵn.                    |
+| **Cải tiến**     | Bộ nhớ + truy xuất tương tự (Memory Bank)            | Tối giản nhưng hiệu quả trong phát hiện sớm, tập trung vào limitation.  |
+| **Dữ liệu**      | HDFS (NASA)                                         | Dữ liệu chuẩn dùng cho LogEDL; có thông tin nhãn lỗi.        |
+| **Học (Learning)** | Giữ nguyên mô hình: Transformer + ENN (không fine-tune mới) | Giảm phức tạp; tập trung cải tiến về kiến trúc chứ không thêm mô hình mới. |
+| **Luận lý**       | Kết hợp score cơ bản và similarity từ memory        | Đơn giản nhưng có kiểm soát (thí nghiệm thay đổi \(\alpha\)).            |
+| **Đánh giá**     | So sánh song song (Baseline vs Improved)             | Thiết kế kiểm soát chặt: thay đổi duy nhất là module Memory.             |
+
+Lựa chọn này tuân thủ nguyên tắc “đơn giản nhưng đủ mạnh”: chỉ thêm Memory Bank và tính toán similarity (B tối giản) vào LogEDL. Dữ liệu HDFS được chọn do dễ đánh giá lead time và là chuẩn của LogEDL. Thí nghiệm chính sẽ so sánh F1 và lead time của hai mô hình để chứng minh cải tiến.
+
+# 17. Ma trận truy xuất (Traceability Matrix)
+
+| **Yếu tố nghiên cứu (RQ/Hyp)** | **Thành phần thiết kế**       | **Thí nghiệm**      | **Chỉ số**                | **Chứng cứ thành công**                         |
+|------------------------------|-----------------------------|---------------------|---------------------------|------------------------------------------------|
+| RQ1: Phát hiện anomaly?      | Anomaly Scoring (ENN + memory) | E2 (Baseline vs Improved) | Precision, Recall, F1 | *Tăng F1/Recall* trên Improved so với Baseline. |
+| RQ2: Phát hiện sớm?         | Retrieval (Memory Bank)      | E4 (Early Detection)    | Lead Time, Early Warning Rate | *Lead time tăng*, nhiều cảnh báo trước sự kiện.   |
+| RQ3: Tổng quát?             | Memory Bank (cross-dataset)  | E7 (Cross-dataset test)  | Precision, F1 trên BGL | *Hiệu năng không giảm mạnh trên dữ liệu khác*.  |
+| H1: F1 tăng (Improved>Base) | Memory + ENN combo          | E2                     | F1, p-value (t-test)      | p<0.05 (tăng đáng kể) cho F1 của Improved.      |
+| H2: Lead time giảm         | Retrieval bổ sung             | E4                     | Lead Time (trung bình)    | Lead time giảm rõ (ví dụ mean giảm 20%).       |
+| H3: Không tăng false-alarm | Điều chỉnh threshold          | E2/E4                  | False Alarm Rate          | False Alarm không tăng quá đáng kể (p>0.05).   |
+
+Ma trận trên liên kết mỗi RQ/Hypothesis với thành phần thiết kế, thử nghiệm và chỉ số đo. Ví dụ, RQ1 kiểm chứng qua E2 với các metric F1, RQ2 qua E4 với lead time, v.v. Nếu cải tiến thành công, các metric sẽ cải thiện tương ứng.
+
+# 18. Threats to Validity
+
+- **Nội tại (Internal):** Có thể do **implementation mismatch** với LogEDL gốc (cài lại khác kỹ thuật gốc) gây sai lệch kết quả. Tuning hyperparam lệch có thể bias hiệu năng. **Rò rỉ dữ liệu** nếu không kiểm soát chuỗi log lịch sử đúng. So sánh không công bằng nếu baseline được tinh chỉnh hơn improved. Giải pháp: tuân thủ giao thức ban đầu, fix seed, đối chiếu code với tài liệu gốc.  
+- **Ngoại suy (External):** Kết quả dựa trên một hoặc một vài bộ dữ liệu (HDFS, BGL) có thể không đại diện toàn cầu cho mọi ứng dụng log. Benchmarks chưa phản ánh môi trường thực. **Giới hạn domain:** Cải tiến có thể hiệu quả trên dạng log có cấu trúc nhưng không với log phi cấu trúc khác. Giải pháp: thử nghiệm trên nhiều dataset, thận trọng khi khẳng định chung.  
+- **Khái niệm (Construct):** **Metrics**: Sử dụng F1 không đo trực tiếp sớm; cần lead time để đánh giá mục tiêu thật. Nhãn “bất thường” có thể không đồng nhất hoặc không thực sự phản ánh “điểm bắt đầu sự kiện”. Giải pháp: định nghĩa rõ ràng điểm lỗi và lead time, bổ sung metric phù hợp.  
+- **Kết luận (Conclusion):** Chỉ dùng một vài thử nghiệm, có thể overfitting thiết kế. Nếu khoảng tin cậy quá rộng, thiếu sức mạnh thống kê. Nếu chênh lệch không rõ ràng, khó kết luận. Giải pháp: chạy nhiều lần, thống kê rõ ràng, không chỉ trình bày giá trị tốt nhất.  
+- **Foundation Model:** Không dùng LLM lớn, nên không có drift issue. Nếu có dùng LLM API (kế hoạch không cần), phải quan tâm version.  
+- **Retrieval:** *Temporal leakage:* nếu vô tình lấy mẫu log sau thời điểm hiện tại. *Stale knowledge:* bộ nhớ có thể chưa được cập nhật (giải pháp cập nhật online nếu cần). *Irrelevant retrieval:* tương đồng giả giữa log bình thường và bất thường. Kiểm soát ngưỡng similarity, kiểm thử nếu memory bị nhiễu (giả mạo logs).  
+
+Nhận thức các mối đe dọa này sẽ giúp thiết kế thí nghiệm chặt chẽ hơn (ví dụ chạy lại baseline, kiểm tra phân phối dữ liệu, tính kiểm thử).
+
+# 19. Rủi ro và biện pháp khắc phục
+
+| **Rủi ro**                         | **Xác suất** | **Tác động**    | **Giải pháp**                                           | **Phương án dự phòng**                                        |
+|-----------------------------------|-------------:|---------------:|--------------------------------------------------------|----------------------------------------------------------------|
+| Baseline không tái tạo chính xác  | Cao         | Cao            | Kiểm tra kỹ Pipeline, đối chiếu báo cáo gốc.           | Nếu không, dùng kết quả báo cáo như tham chiếu.                |
+| Cải tiến không cho hiệu quả       | Trung bình  | Trung bình     | Tinh chỉnh ngưỡng similarity; thu thập thêm dữ liệu.  | Trường hợp xấu, giảm scope (giảm tỷ trọng weight).            |
+| Hiệu quả chỉ trên 1 tập dữ liệu  | Trung bình  | Trung bình     | Thử trên nhiều dataset (BGL, Thunderbird).             | Tập trung vào dataset chính, cảnh báo giới hạn tổng quát.     |
+| Tính toán tốn kém (latency cao)  | Cao         | Trung bình     | Tối ưu indexing (Vector DB), giới hạn độ dài sequence. | Giảm kích thước memory (vd. chỉ lưu mẫu quan trọng).         |
+| Lỗi memory không ổn định         | Thấp        | Thấp           | Kiểm soát bộ nhớ (update logic), lọc mẫu xấu.          | Giảm dependency: chỉ dùng retrieval tĩnh một phần.           |
+| Thiếu dữ liệu nhãn bất thường    | Trung bình  | Cao            | Thu thập thêm logs sự kiện, cân nhắc semi-supervised. | Giảm mục tiêu, nghiên cứu cảnh báo sớm giới hạn.             |
+
+Giải pháp dự phòng chủ yếu là **giảm scope hoặc đơn giản hoá cải tiến** nếu gặp khó khăn (ví dụ chỉ thêm retrieval threshold đơn giản). Không có plan B là thay baseline – chỉ thay đổi nội bộ cùng hướng cải tiến.
+
+# 20. Đóng góp kỳ vọng
+
+- **Khoa học (Scientific):** Cung cấp bằng chứng cho thấy việc bổ sung kiến thức lịch sử (memory) giúp cải thiện hiệu suất phát hiện sớm trong log anomaly detection. Xác định điều kiện (hệ thống, dataset) mà cải tiến này hiệu quả.  
+- **Phương pháp luận (Methodological):** Trình bày một quy trình thiết kế thí nghiệm có kiểm soát, so sánh Baseline vs Improved, phù hợp cho nghiên cứu tương tự. Chuỗi công việc design→reproduction→controlled evaluation.  
+- **Kỹ thuật (Engineering):** Cung cấp một thiết kế reproducible cho hệ thống phát hiện bất thường sớm dựa trên log. Mã nguồn và quy trình đánh giá có thể chia sẻ.  
+- **Ứng dụng công nghiệp:** Cho thấy khả năng cảnh báo sớm sự cố trong hệ thống phần mềm, giúp giảm downtime. Cải tiến có thể tích hợp vào các sản phẩm AIOps/DevOps để nâng cao độ tin cậy.  
+
+(Chỉ đề cập đóng góp công nghiệp nếu kết quả thực nghiệm chứng minh cải tiến hữu ích cho môi trường thật.)
+
+# 21. Khả năng tái lập
+
+Cần ghi rõ thông tin để người khác có thể tái lập:
+
+- **Baseline/Version:** Mô hình LogEDL (phiên bản Appl. Sci. 2024). Code hoặc thông số (nếu có) của tác giả.  
+- **Mô hình:** Transformer Encoder (số layers, hidden size, etc) và ENN head như mô tả. Phiên bản thư viện (ví dụ PyTorch 2.x).  
+- **Tập dữ liệu:** HDFS dataset (đủ metadata, version, cách phân chia). Nếu public: đường link hoặc DOI.  
+- **Tiền xử lý:** Cấu hình Drain (tham số log template).  
+- **Seeds:** Các seed ngẫu nhiên cho huấn luyện và đánh giá.  
+- **Memory config:** Kích thước Memory Bank, phương pháp bổ sung logs. Bản ghi logs lịch sử (timestamp) đã dùng. Tham số retrieval (k, similarity function, ngưỡng).  
+- **Đánh giá:** Protocol train/test, ngưỡng cảnh báo. Phần cứng (GPU/CPU) và thư viện (DL framework, phiên bản).  
+- **Khác:** Tỷ lệ chia (vd. 70/30), batch size, learning rate đã dùng cho baseline (theo gốc), các siêu tham số của ENN.  
+
+Mục tiêu: Một người dùng khác có thể cài đặt LogEDL theo tài liệu gốc, thêm module memory như trên, và thu được kết quả tương tự. Tất cả thành phần thay đổi đều được ghi chú rõ (để đối chiếu) như setting weight \(\alpha\), indexing method.
+
+# 22. Checklist cuối cùng
+
+- [x] **Baseline Q1/Q2 2023–2026 rõ ràng:** LogEDL, Appl. Sci. 2024, Q2.  
+- [x] **Một giới hạn đã xác nhận:** Baseline thiếu kiến thức lịch sử, chậm phát hiện sớm.  
+- [x] **Một cải tiến mục tiêu chính:** Thêm Memory Bank (truy xuất tương tự) cho LogEDL.  
+- [x] **Phục hồi baseline/reference:** Mô tả chi tiết pipeline LogEDL.  
+- [x] **So sánh Baseline vs Improved:** Thiết kế thí nghiệm đối chứng.  
+- [x] **Ablation hợp lý:** Lược khảo so sánh có/không memory.  
+- [x] **Các metrics Early Detection:** Lead Time, Early Warning Rate (bổ sung Precision/Recall).  
+- [x] **Biến kiểm soát:** Giữ cố định mọi thứ ngoại trừ module memory.  
+- [x] **Thống kê:** Chạy lặp, kiểm định.  
+- [x] **Giảm rủi ro:** Đề xuất fallback khi cải tiến thất bại.  
+- [x] **Không tạo đề tài mới:** Giữ đúng hướng “cải tiến baseline LogEDL”.  
+- [x] **Không thêm công nghệ không cần thiết:** Chỉ thêm memory/retrieval.  
+- [x] **Khả thi trong 6–9 tháng:** Xây dựng prototype và đánh giá với dataset có sẵn.  
+
+Tất cả mục trên đã được xử lý trong thiết kế, đảm bảo tính nhất quán, đầy đủ và khả thi. 
+
+**Nguồn trích dẫn:** Kết quả thí nghiệm và thông tin baseline dựa trên Duan et al. (2024). Các khuyến cáo về phát hiện sớm từ khảo sát thực tiễn. Đảm bảo tất cả nội dung quan trọng đều có nguồn tham khảo hỗ trợ.
